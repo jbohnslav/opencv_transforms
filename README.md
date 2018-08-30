@@ -4,7 +4,7 @@ This repository is intended as a faster drop-in replacement for [Pytorch's Torch
 
 ## Requirements
 * A working installation of OpenCV. **Tested with OpenCV version 3.4.1**
-* Tested on Windows 10.
+* Tested on Windows 10. There is evidence that OpenCV doesn't work well with multithreading on Linux / MacOS, for example `num_workers >0` in a pytorch `DataLoader`. I haven't tried this on those systems. 
 
 ## Installation
 * `git clone https://github.com/jbohnslav/opencv_transforms.git`
