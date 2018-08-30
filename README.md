@@ -14,10 +14,10 @@ This repository is intended as a faster drop-in replacement for [Pytorch's Torch
 * `from opencv_transforms import opencv_transforms as transforms`
 * From here, almost everything should work exactly as the original `transforms`.
 #### Example: Image resizing 
-`import numpy as np
-image = np.random.randint(low=0, high=255, size=(1024, 2048, 3))
-resize = transforms.Resize(size=(256,256))
-image = resize(image)`
+`import numpy as np`
+`image = np.random.randint(low=0, high=255, size=(1024, 2048, 3))`
+`resize = transforms.Resize(size=(256,256))`
+`image = resize(image)`
 Should be 1.5 to 10 times faster than PIL. See benchmarks
 
 ## Performance
