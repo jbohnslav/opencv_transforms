@@ -21,3 +21,4 @@ This repository is intended as a faster drop-in replacement for [Pytorch's Torch
 * An example benchmarking file can be found in the notebook **bencharming_v2.ipynb**
 * Most transformations are between 1.5X and ~4X faster in OpenCV.
 ![resize](benchmarks/benchmarking_Resize.png)
+![random crop](benchmarks/benchmarking_Random crop quarter size)
