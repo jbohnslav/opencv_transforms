@@ -13,9 +13,9 @@ import types
 import collections
 import warnings
 
-import opencv_functional as F
+# import opencv_functional as F
 import cv2
-# from . import functional as F
+from . import opencv_functional as F
 
 __all__ = ["Compose", "ToTensor", "ToPILImage", "Normalize", "Resize", "Scale", "CenterCrop", "Pad",
            "Lambda", "RandomApply", "RandomChoice", "RandomOrder", "RandomCrop", "RandomHorizontalFlip",

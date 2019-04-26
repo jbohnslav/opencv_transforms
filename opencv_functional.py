@@ -194,7 +194,7 @@ def crop(img, i, j, h, w):
 def center_crop(img, output_size):
     if isinstance(output_size, numbers.Number):
         output_size = (int(output_size), int(output_size))
-    w, h = img.shape[0:2]
+    h,w = img.shape[0:2]
     th, tw = output_size
     i = int(round((h - th) / 2.))
     j = int(round((w - tw) / 2.))
