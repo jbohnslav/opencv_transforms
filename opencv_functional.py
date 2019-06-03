@@ -1,7 +1,7 @@
 import torch
 import math
 import random
-from PIL import Image, ImageOps, ImageEnhance, PILLOW_VERSION
+# from PIL import Image, ImageOps, ImageEnhance, PILLOW_VERSION
 try:
     import accimage
 except ImportError:
@@ -76,17 +76,17 @@ def normalize(tensor, mean, std):
         t.sub_(m).div_(s)
     return tensor
 
-def resize(img, size, interpolation=cv2.INTER_CUBIC):
+def resize(img, size, interpolation=cv2.INTER_LINEAR):
     r"""Resize the input numpy ndarray to the given size.
     Args:
         img (numpy ndarray): Image to be resized.
         size (sequence or int): Desired output size. If size is a sequence like
-            (h, w), the output size will be matched to this. If size is an int,
+            (w, h), the output size will be matched to this. If size is an int,
             the smaller edge of the image will be matched to this number maintaing
             the aspect ratio. i.e, if height > width, then image will be rescaled to
             :math:`\left(\text{size} \times \frac{\text{height}}{\text{width}}, \text{size}\right)`
         interpolation (int, optional): Desired interpolation. Default is
-            ``cv2.INTER_CUBIC``
+            ``cv2.INTER_LINEAR``
     Returns:
         PIL Image: Resized image.
     """
@@ -94,7 +94,8 @@ def resize(img, size, interpolation=cv2.INTER_CUBIC):
         raise TypeError('img should be numpy image. Got {}'.format(type(img)))
     if not (isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)):
         raise TypeError('Got inappropriate size arg: {}'.format(size))
-    w, h, =  size
+
+    w, h, =  img.shape[1], img.shape[0]
 
     if isinstance(size, int):
         if (w <= h and w == size) or (h <= w and h == size):
@@ -200,7 +201,7 @@ def center_crop(img, output_size):
     j = int(round((w - tw) / 2.))
     return crop(img, i, j, th, tw)
 
-def resized_crop(img, i, j, h, w, size, interpolation=cv2.INTER_CUBIC):
+def resized_crop(img, i, j, h, w, size, interpolation=cv2.INTER_LINEAR):
     """Crop the given numpy ndarray and resize it to desired size.
     Notably used in :class:`~torchvision.transforms.RandomResizedCrop`.
     Args:
@@ -211,7 +212,7 @@ def resized_crop(img, i, j, h, w, size, interpolation=cv2.INTER_CUBIC):
         w: Width of the cropped image.
         size (sequence or int): Desired output size. Same semantics as ``scale``.
         interpolation (int, optional): Desired interpolation. Default is
-            ``cv2.INTER_CUBIC``.
+            ``cv2.INTER_LINEAR``.
     Returns:
         PIL Image: Cropped image.
     """
@@ -504,7 +505,7 @@ def _get_affine_matrix(center, angle, translate, scale, shear):
     
     return matrix[:2,:]
 
-def affine(img, angle, translate, scale, shear, interpolation=cv2.INTER_CUBIC, mode=cv2.BORDER_CONSTANT, fillcolor=0):
+def affine(img, angle, translate, scale, shear, interpolation=cv2.INTER_LINEAR, mode=cv2.BORDER_CONSTANT, fillcolor=0):
     """Apply affine transformation on the image keeping image center invariant
     Args:
         img (numpy ndarray): numpy ndarray to be transformed.
@@ -515,7 +516,7 @@ def affine(img, angle, translate, scale, shear, interpolation=cv2.INTER_CUBIC, m
         interpolation (``cv2.INTER_NEAREST` or ``cv2.INTER_LINEAR`` or ``cv2.INTER_AREA``, ``cv2.INTER_CUBIC``):
             An optional resampling filter.
             See `filters`_ for more information.
-            If omitted, it is set to ``cv2.INTER_CUBIC``, for bicubic interpolation.
+            If omitted, it is set to ``cv2.INTER_LINEAR``, for bilinear interpolation.
         mode (``cv2.BORDER_CONSTANT`` or ``cv2.BORDER_REPLICATE`` or ``cv2.BORDER_REFLECT`` or ``cv2.BORDER_REFLECT_101``)
             Method for filling in border regions. 
             Defaults to cv2.BORDER_CONSTANT, meaning areas outside the image are filled with a value (val, default 0)
