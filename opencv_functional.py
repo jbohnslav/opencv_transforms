@@ -250,7 +250,7 @@ def vflip(img):
     else:
         return cv2.flip(img, 0)
     # img[::-1] is much faster, but doesn't work with torch.from_numpy()!
-    
+
 
 
 def five_crop(img, size):
@@ -373,10 +373,15 @@ def adjust_saturation(img, saturation_factor):
     # ~10ms slower than PIL!
     if not _is_numpy_image(img):
         raise TypeError('img should be numpy Image. Got {}'.format(type(img)))
-    img = Image.fromarray(img)
-    enhancer = ImageEnhance.Color(img)
-    img = enhancer.enhance(saturation_factor)
-    return np.array(img)
+    M = np.float32([
+        [1+2*saturation_factor, 1-saturation_factor, 1-saturation_factor],
+        [1-saturation_factor, 1+2*saturation_factor, 1-saturation_factor],
+        [1-saturation_factor, 1-saturation_factor, 1+2*saturation_factor],
+        ])
+    shape = img.shape
+    img = np.matmul(img.reshape(-1, 3), M).reshape(shape)/3
+    img = np.clip(img, 0, 255).astype(np.uint8)
+    return img
 
 
 def adjust_hue(img, hue_factor):
@@ -398,7 +403,7 @@ def adjust_hue(img, hue_factor):
     Returns:
         numpy ndarray: Hue adjusted image.
     """
-    # After testing, found that OpenCV calculates the Hue in a call to 
+    # After testing, found that OpenCV calculates the Hue in a call to
     # cv2.cvtColor(..., cv2.COLOR_BGR2HSV) differently from PIL
 
     # This function takes 160ms! should be avoided
@@ -445,7 +450,7 @@ def adjust_gamma(img, gamma, gain=1):
         raise ValueError('Gamma should be a non-negative real number')
     # from here
     # https://stackoverflow.com/questions/33322488/how-to-change-image-illumination-in-opencv-python/41061351
-    table = np.array([((i / 255.0) ** gamma) * 255 * gain 
+    table = np.array([((i / 255.0) ** gamma) * 255 * gain
                       for i in np.arange(0, 256)]).astype('uint8')
     if img.shape[2]==1:
         return cv2.LUT(img, table)[:,:,np.newaxis]
@@ -491,18 +496,18 @@ def _get_affine_matrix(center, angle, translate, scale, shear):
     #       RSS(a, scale, shear) = [ cos(a)*scale    -sin(a + shear)*scale     0]
     #                              [ sin(a)*scale    cos(a + shear)*scale     0]
     #                              [     0                  0          1]
-    
+
     angle = math.radians(angle)
     shear = math.radians(shear)
     # scale = 1.0 / scale
-    
+
     T = np.array([[1, 0, translate[0]], [0, 1, translate[1]], [0,0,1]])
     C = np.array([[1, 0, center[0]], [0, 1, center[1]], [0,0,1]])
     RSS = np.array([[math.cos(angle)*scale, -math.sin(angle+shear)*scale, 0],
                    [math.sin(angle)*scale, math.cos(angle+shear)*scale, 0],
                    [0,0,1]])
     matrix = T @ C @ RSS @ np.linalg.inv(C)
-    
+
     return matrix[:2,:]
 
 def affine(img, angle, translate, scale, shear, interpolation=cv2.INTER_LINEAR, mode=cv2.BORDER_CONSTANT, fillcolor=0):
@@ -518,7 +523,7 @@ def affine(img, angle, translate, scale, shear, interpolation=cv2.INTER_LINEAR, 
             See `filters`_ for more information.
             If omitted, it is set to ``cv2.INTER_LINEAR``, for bilinear interpolation.
         mode (``cv2.BORDER_CONSTANT`` or ``cv2.BORDER_REPLICATE`` or ``cv2.BORDER_REFLECT`` or ``cv2.BORDER_REFLECT_101``)
-            Method for filling in border regions. 
+            Method for filling in border regions.
             Defaults to cv2.BORDER_CONSTANT, meaning areas outside the image are filled with a value (val, default 0)
         val (int): Optional fill color for the area outside the transform in the output image. Default: 0
     """
@@ -533,7 +538,7 @@ def affine(img, angle, translate, scale, shear, interpolation=cv2.INTER_LINEAR, 
     output_size = img.shape[0:2]
     center = (img.shape[1] * 0.5 + 0.5, img.shape[0] * 0.5 + 0.5)
     matrix = _get_affine_matrix(center, angle, translate, scale, shear)
-    
+
     if img.shape[2]==1:
         return cv2.warpAffine(img, matrix, output_size[::-1],interpolation, borderMode=mode, borderValue=fillcolor)[:,:,np.newaxis]
     else:
@@ -555,5 +560,5 @@ def to_grayscale(img, num_output_channels=1):
         img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)[:,:,np.newaxis]
     elif num_output_channels==3:
         # much faster than doing cvtColor to go back to gray
-        img = np.broadcast_to(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)[:,:,np.newaxis], img.shape) 
+        img = np.broadcast_to(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)[:,:,np.newaxis], img.shape)
     return img
