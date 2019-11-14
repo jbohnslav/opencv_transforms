@@ -3,15 +3,16 @@
 This repository is intended as a faster drop-in replacement for [Pytorch's Torchvision augmentations](https://github.com/pytorch/vision/). This repo uses OpenCV for fast image augmentation for PyTorch computer vision pipelines. I wrote this code because the Pillow-based Torchvision transforms was starving my GPU due to slow image augmentation.
 
 ## Requirements
-* A working installation of OpenCV. **Tested with OpenCV version 3.4.1**
-* Tested on Windows 10. There is evidence that OpenCV doesn't work well with multithreading on Linux / MacOS, for example `num_workers >0` in a pytorch `DataLoader`. I haven't tried this on those systems. 
+* A working installation of OpenCV. **Tested with OpenCV version 3.4.1, 4.1.0**
+* Tested on Windows 10 and Ubuntu 18.04. There is evidence that OpenCV doesn't work well with multithreading on Linux / MacOS, for example `num_workers >0` in a pytorch `DataLoader`. I haven't run into this issue yet. 
 
 ## Installation
-* `git clone https://github.com/jbohnslav/opencv_transforms.git`
-* Add to your python path
+opencv_transforms is now a pip package! Simply use
+* `pip install opencv_transforms`
 
 ## Usage
-* `from opencv_transforms import opencv_transforms as transforms`
+**Breaking change! Please note the import syntax!** 
+* `from opencv_transforms import transforms`
 * From here, almost everything should work exactly as the original `transforms`.
 #### Example: Image resizing 
 ```python
