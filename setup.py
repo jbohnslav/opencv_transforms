@@ -9,6 +9,7 @@ setuptools.setup(
     author='Jim Bohnslav', 
     author_email='JBohnslav@gmail.com',
     description='A drop-in replacement for Torchvision Transforms using OpenCV', 
+    keywords='pytorch image augmentations'
     long_description=long_description, 
     long_description_content_type='text/markdown', 
     url='https://github.com/jbohnslav/opencv_transforms',
