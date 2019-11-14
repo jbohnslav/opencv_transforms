@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 __pycache__/
 .ipynb_checkpoints
 /dist/
 /*.egg-info
 *.pyc
+=======
+__pycache__/
+.ipynb_checkpoints
+>>>>>>> 0d740b44663fd57110cd8fcc057f2e50853d888e
