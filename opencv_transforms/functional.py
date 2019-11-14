@@ -1,4 +1,3 @@
-<<<<<<< HEAD:opencv_transforms/opencv_functional.py
 import torch
 import math
 import random
@@ -1115,5 +1114,4 @@ def to_grayscale(img, num_output_channels=1):
     elif num_output_channels==3:
         # much faster than doing cvtColor to go back to gray
         img = np.broadcast_to(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)[:,:,np.newaxis], img.shape) 
->>>>>>> 0d740b44663fd57110cd8fcc057f2e50853d888e:opencv_functional.py
     return img

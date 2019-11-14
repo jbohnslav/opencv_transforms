@@ -1,4 +1,3 @@
-<<<<<<< HEAD:opencv_transforms/opencv_transforms.py
 from __future__ import division
 import torch
 import math
@@ -16,7 +15,7 @@ import warnings
 
 # import opencv_functional as F
 import cv2
-from . import opencv_functional as F
+from . import functional as F
 
 __all__ = ["Compose", "ToTensor", "ToPILImage", "Normalize", "Resize", "Scale", "CenterCrop", "Pad",
            "Lambda", "RandomApply", "RandomChoice", "RandomOrder", "RandomCrop", "RandomHorizontalFlip",
@@ -1948,5 +1947,4 @@ class RandomGrayscale(object):
         return img
 
     def __repr__(self):
->>>>>>> 0d740b44663fd57110cd8fcc057f2e50853d888e:opencv_transforms.py
         return self.__class__.__name__ + '(p={0})'.format(self.p)
