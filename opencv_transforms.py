@@ -2,7 +2,7 @@ from __future__ import division
 import torch
 import math
 import random
-from PIL import Image, ImageOps, ImageEnhance
+# from PIL import Image, ImageOps, ImageEnhance
 try:
     import accimage
 except ImportError:
@@ -13,9 +13,9 @@ import types
 import collections
 import warnings
 
-import opencv_functional as F
+# import opencv_functional as F
 import cv2
-# from . import functional as F
+from . import opencv_functional as F
 
 __all__ = ["Compose", "ToTensor", "ToPILImage", "Normalize", "Resize", "Scale", "CenterCrop", "Pad",
            "Lambda", "RandomApply", "RandomChoice", "RandomOrder", "RandomCrop", "RandomHorizontalFlip",
@@ -121,9 +121,9 @@ class Resize(object):
             ``cv2.INTER_CUBIC``, bicubic interpolation
     """
 
-    def __init__(self, size, interpolation=cv2.INTER_CUBIC):
+    def __init__(self, size, interpolation=cv2.INTER_LINEAR):
         assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
-        self.size = size
+        self.size = tuple(size)
         self.interpolation = interpolation
 
     def __call__(self, img):
@@ -354,7 +354,7 @@ class RandomCrop(object):
         """Get parameters for ``crop`` for a random crop.
         Args:
             img (numpy ndarray): Image to be cropped.
-            output_size (tuple): Expected output size of the crop.
+            output_size (tuple): Expected output size of the crop. 
         Returns:
             tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
         """
@@ -456,7 +456,7 @@ class RandomResizedCrop(object):
         interpolation: Default: cv2.INTER_CUBIC
     """
 
-    def __init__(self, size, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.), interpolation=cv2.INTER_CUBIC):
+    def __init__(self, size, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.), interpolation=cv2.INTER_LINEAR):
         self.size = (size, size)
         self.interpolation = interpolation
         self.scale = scale
@@ -823,7 +823,7 @@ class RandomAffine(object):
         fillcolor (int): Optional fill color for the area outside the transform in the output image.
     """
 
-    def __init__(self, degrees, translate=None, scale=None, shear=None, interpolation=cv2.INTER_CUBIC, fillcolor=0):
+    def __init__(self, degrees, translate=None, scale=None, shear=None, interpolation=cv2.INTER_LINEAR, fillcolor=0):
         if isinstance(degrees, numbers.Number):
             if degrees < 0:
                 raise ValueError("If degrees is a single number, it must be positive.")
