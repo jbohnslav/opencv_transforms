@@ -122,8 +122,13 @@ class Resize(object):
     """
 
     def __init__(self, size, interpolation=cv2.INTER_LINEAR):
-        assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
-        self.size = size
+        # assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
+        if isinstance(size, int):
+            self.size = (size,size)
+        elif isinstance(size, collections.Iterable) and len(size) == 2:
+            self.size = size
+        else:
+            raise ValueError('Unknown inputs for size: {}'.format(size))
         self.interpolation = interpolation
 
     def __call__(self, img):
