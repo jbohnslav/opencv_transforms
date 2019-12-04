@@ -145,7 +145,7 @@ def pad(img, padding, fill=0, padding_mode='constant'):
     """
     if not _is_numpy_image(img):
         raise TypeError('img should be numpy ndarray. Got {}'.format(type(img)))
-    if not isinstance(padding, (numbers.Number, tuple)):
+    if not isinstance(padding, (numbers.Number, tuple, list)):
         raise TypeError('Got inappropriate padding arg')
     if not isinstance(fill, (numbers.Number, str, tuple)):
         raise TypeError('Got inappropriate fill arg')
