@@ -206,7 +206,7 @@ class Pad(object):
     """
 
     def __init__(self, padding, fill=0, padding_mode='constant'):
-        assert isinstance(padding, (numbers.Number, tuple))
+        assert isinstance(padding, (numbers.Number, tuple, list))
         assert isinstance(fill, (numbers.Number, str, tuple))
         assert padding_mode in ['constant', 'edge', 'reflect', 'symmetric']
         if isinstance(padding, collections.Sequence) and len(padding) not in [2, 4]:
