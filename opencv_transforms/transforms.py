@@ -126,6 +126,8 @@ class Resize(object):
         if isinstance(size, int):
             self.size = (size,size)
         elif isinstance(size, collections.Iterable) and len(size) == 2:
+            if type(size) == list:
+                size = tuple(size)
             self.size = size
         else:
             raise ValueError('Unknown inputs for size: {}'.format(size))
