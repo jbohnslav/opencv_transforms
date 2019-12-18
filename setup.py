@@ -5,7 +5,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name='opencv_transforms',
-    version='0.0.3.post0',
+    version='0.0.3.post1',
     author='Jim Bohnslav', 
     author_email='JBohnslav@gmail.com',
     description='A drop-in replacement for Torchvision Transforms using OpenCV', 
