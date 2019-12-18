@@ -76,7 +76,7 @@ def normalize(tensor, mean, std):
         t.sub_(m).div_(s)
     return tensor
 
-def resize(img, size, interpolation=cv2.INTER_CUBIC):
+def resize(img, size, interpolation=cv2.INTER_LINEAR):
     r"""Resize the input numpy ndarray to the given size.
     Args:
         img (numpy ndarray): Image to be resized.
@@ -200,7 +200,7 @@ def center_crop(img, output_size):
     j = int(round((w - tw) / 2.))
     return crop(img, i, j, th, tw)
 
-def resized_crop(img, i, j, h, w, size, interpolation=cv2.INTER_CUBIC):
+def resized_crop(img, i, j, h, w, size, interpolation=cv2.INTER_LINEAR):
     """Crop the given numpy ndarray and resize it to desired size.
     Notably used in :class:`~torchvision.transforms.RandomResizedCrop`.
     Args:
@@ -504,7 +504,7 @@ def _get_affine_matrix(center, angle, translate, scale, shear):
     
     return matrix[:2,:]
 
-def affine(img, angle, translate, scale, shear, interpolation=cv2.INTER_CUBIC, mode=cv2.BORDER_CONSTANT, fillcolor=0):
+def affine(img, angle, translate, scale, shear, interpolation=cv2.INTER_LINEAR, mode=cv2.BORDER_CONSTANT, fillcolor=0):
     """Apply affine transformation on the image keeping image center invariant
     Args:
         img (numpy ndarray): numpy ndarray to be transformed.
