@@ -109,7 +109,7 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
             output = cv2.resize(img, dsize=(ow, oh), interpolation=interpolation)
     else:
         output = cv2.resize(img, dsize=size[::-1], interpolation=interpolation)
-    if img.shape[2]==1:
+    if img.ndim==2:
         return(output[:,:,np.newaxis])
     else:
         return(output)
