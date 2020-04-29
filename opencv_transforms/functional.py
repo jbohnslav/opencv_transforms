@@ -108,11 +108,11 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
             ow = int(size * w / h)
             output = cv2.resize(img, dsize=(ow, oh), interpolation=interpolation)
     else:
-        output = cv2.resize(img, dsize=size[::-1], interpolation=interpolation)
+        output = cv2.resize(img, dsize=(size[1], size[0]), interpolation=interpolation)
     if img.shape[2]==1:
-        return(output[:,:,np.newaxis])
+        return output[:, :, np.newaxis]
     else:
-        return(output)
+        return output
 
 def scale(*args, **kwargs):
     warnings.warn("The use of the transforms.Scale transform is deprecated, " +
