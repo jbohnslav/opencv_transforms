@@ -1,7 +1,7 @@
 import torch
 import math
 import random
-# from PIL import Image, ImageOps, ImageEnhance, PILLOW_VERSION
+from PIL import Image, ImageOps, ImageEnhance, PILLOW_VERSION
 try:
     import accimage
 except ImportError:
