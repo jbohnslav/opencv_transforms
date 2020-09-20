@@ -18,7 +18,7 @@ import cv2
 from . import functional as F
 
 __all__ = [
-    "Compose", "ToTensor", "ToPILImage", "Normalize", "Resize", "Scale",
+    "Compose", "ToTensor", "Normalize", "Resize", "Scale",
     "CenterCrop", "Pad", "Lambda", "RandomApply", "RandomChoice",
     "RandomOrder", "RandomCrop", "RandomHorizontalFlip", "RandomVerticalFlip",
     "RandomResizedCrop", "RandomSizedCrop", "FiveCrop", "TenCrop",
@@ -529,7 +529,7 @@ class RandomResizedCrop(object):
         return F.resized_crop(img, i, j, h, w, self.size, self.interpolation)
 
     def __repr__(self):
-        interpolate_str = _pil_interpolation_to_str[self.interpolation]
+        interpolate_str = _cv2_interpolation_from_str[self.interpolation]
         format_string = self.__class__.__name__ + '(size={0}'.format(self.size)
         format_string += ', scale={0}'.format(
             tuple(round(s, 4) for s in self.scale))
@@ -982,7 +982,7 @@ class RandomAffine(object):
             s += ', fillcolor={fillcolor}'
         s += ')'
         d = dict(self.__dict__)
-        d['resample'] = _pil_interpolation_to_str[d['resample']]
+        d['resample'] = _cv2_interpolation_to_str[d['resample']]
         return s.format(name=self.__class__.__name__, **d)
 
 

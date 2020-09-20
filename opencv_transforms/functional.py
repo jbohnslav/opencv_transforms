@@ -1,7 +1,7 @@
 import torch
 import math
 import random
-# from PIL import Image, ImageOps, ImageEnhance, PILLOW_VERSION
+from PIL import Image, ImageOps, ImageEnhance, PILLOW_VERSION
 try:
     import accimage
 except ImportError:
@@ -194,21 +194,21 @@ def pad(img, padding, fill=0, padding_mode='constant'):
         pad_right = padding[2]
         pad_bottom = padding[3]
     if img.shape[2] == 1:
-        return (cv2.copyMakeBorder(img,
+        return cv2.copyMakeBorder(img,
                                    top=pad_top,
                                    bottom=pad_bottom,
                                    left=pad_left,
                                    right=pad_right,
                                    borderType=_cv2_pad_to_str[padding_mode],
-                                   value=fill)[:, :, np.newaxis])
+                                   value=fill)[:, :, np.newaxis]
     else:
-        return (cv2.copyMakeBorder(img,
+        return cv2.copyMakeBorder(img,
                                    top=pad_top,
                                    bottom=pad_bottom,
                                    left=pad_left,
                                    right=pad_right,
                                    borderType=_cv2_pad_to_str[padding_mode],
-                                   value=fill))
+                                   value=fill)
 
 
 def crop(img, i, j, h, w):
@@ -603,14 +603,15 @@ def affine(img,
                               borderValue=fillcolor)
 
 
-def to_grayscale(img, num_output_channels=1):
+def to_grayscale(img, num_output_channels: int=1):
     """Convert image to grayscale version of image.
     Args:
         img (numpy ndarray): Image to be converted to grayscale.
+        num_output_channels: int
+            if 1 : returned image is single channel
+            if 3 : returned image is 3 channel with r = g = b
     Returns:
         numpy ndarray: Grayscale version of the image.
-            if num_output_channels = 1 : returned image is single channel
-            if num_output_channels = 3 : returned image is 3 channel with r = g = b
     """
     if not _is_numpy_image(img):
         raise TypeError('img should be numpy ndarray. Got {}'.format(
