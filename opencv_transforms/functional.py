@@ -310,18 +310,18 @@ def five_crop(img, size):
         assert len(
             size) == 2, "Please provide only two dimensions (h, w) for size."
 
-    w, h = img.shape[0:2]
+    h, w = img.shape[0:2]
     crop_h, crop_w = size
     if crop_w > w or crop_h > h:
         raise ValueError(
             "Requested crop size {} is bigger than input size {}".format(
                 size, (h, w)))
     tl = crop(img, 0, 0, crop_h, crop_w)
-    tr = crop(img, w - crop_w, 0, crop_h, w)
-    bl = crop(img, 0, h - crop_h, crop_w, h)
-    br = crop(img, w - crop_w, h - crop_h, h, w)
+    tr = crop(img, 0, w - crop_w, crop_h, crop_w)
+    bl = crop(img, h - crop_h, 0, crop_h, crop_w)
+    br = crop(img, h - crop_h, w - crop_w, crop_h, crop_w)
     center = center_crop(img, (crop_h, crop_w))
-    return (tl, tr, bl, br, center)
+    return tl, tr, bl, br, center
 
 
 def ten_crop(img, size, vertical_flip=False):
