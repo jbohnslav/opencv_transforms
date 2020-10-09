@@ -6,6 +6,7 @@ from typing import Union
 import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
+from PIL.Image import Image as PIL_image # for typing
 
 from torchvision import transforms as pil_transforms
 from torchvision.transforms import functional as F_pil
@@ -27,7 +28,7 @@ pil_image = Image.open(imfile)
 image = cv2.cvtColor(cv2.imread(imfile, 1), cv2.COLOR_BGR2RGB)
 
 
-def L1(pil: Union[Image, np.ndarray], np_image: np.ndarray) -> float:
+def L1(pil: Union[PIL_image, np.ndarray], np_image: np.ndarray) -> float:
     return np.abs(np.asarray(pil) - np_image).mean()
 
 

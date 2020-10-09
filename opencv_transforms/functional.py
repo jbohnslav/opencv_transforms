@@ -99,7 +99,7 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
             the aspect ratio. i.e, if height > width, then image will be rescaled to
             :math:`\left(\text{size} \times \frac{\text{height}}{\text{width}}, \text{size}\right)`
         interpolation (int, optional): Desired interpolation. Default is
-            ``cv2.INTER_CUBIC``
+            ``cv2.INTER_LINEAR``
     Returns:
         PIL Image: Resized image.
     """
@@ -108,7 +108,7 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
     if not (isinstance(size, int) or
             (isinstance(size, collections.Iterable) and len(size) == 2)):
         raise TypeError('Got inappropriate size arg: {}'.format(size))
-    w, h, = size
+    h, w = img.shape[0], img.shape[1]
 
     if isinstance(size, int):
         if (w <= h and w == size) or (h <= w and h == size):
@@ -116,19 +116,14 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
         if w < h:
             ow = size
             oh = int(size * h / w)
-            output = cv2.resize(img,
-                                dsize=(ow, oh),
-                                interpolation=interpolation)
         else:
             oh = size
             ow = int(size * w / h)
-            output = cv2.resize(img,
-                                dsize=(ow, oh),
-                                interpolation=interpolation)
     else:
-        output = cv2.resize(img,
-                            dsize=(size[1], size[0]),
-                            interpolation=interpolation)
+        ow, oh = size[1], size[0]
+    output = cv2.resize(img,
+                        dsize=(ow, oh),
+                        interpolation=interpolation)
     if img.shape[2] == 1:
         return output[:, :, np.newaxis]
     else:
