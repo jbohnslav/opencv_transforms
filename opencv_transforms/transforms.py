@@ -1,20 +1,21 @@
 from __future__ import division
-import torch
+
+import collections
 import math
+import numbers
 import random
+import types
+import warnings
+
 # from PIL import Image, ImageOps, ImageEnhance
 try:
     import accimage
 except ImportError:
     accimage = None
-import numpy as np
-import numbers
-import types
-import collections
-import warnings
-
-# import opencv_functional as F
 import cv2
+import numpy as np
+import torch
+
 from . import functional as F
 
 __all__ = [
@@ -133,7 +134,7 @@ class Resize(object):
     def __init__(self, size, interpolation=cv2.INTER_LINEAR):
         # assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
         if isinstance(size, int):
-            self.size = (size, size)
+            self.size = size
         elif isinstance(size, collections.Iterable) and len(size) == 2:
             if type(size) == list:
                 size = tuple(size)

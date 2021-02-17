@@ -1,17 +1,20 @@
-import torch
 import math
 import random
-from PIL import Image, ImageOps, ImageEnhance, PILLOW_VERSION
+
+import torch
+from PIL import Image, ImageEnhance, ImageOps
+
 try:
     import accimage
 except ImportError:
     accimage = None
-import numpy as np
+import collections
 import numbers
 import types
-import collections
 import warnings
+
 import cv2
+import numpy as np
 from PIL import Image
 
 _cv2_pad_to_str = {

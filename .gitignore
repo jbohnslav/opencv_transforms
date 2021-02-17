@@ -1,5 +1,6 @@
 __pycache__/
 .ipynb_checkpoints
+.vscode
 /dist/
 /*.egg-info
 *.pyc
