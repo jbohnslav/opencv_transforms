@@ -131,6 +131,7 @@ class Resize(object):
         interpolation (int, optional): Desired interpolation. Default is
             ``cv2.INTER_CUBIC``, bicubic interpolation
     """
+
     def __init__(self, size, interpolation=cv2.INTER_LINEAR):
         # assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
         if isinstance(size, int):
