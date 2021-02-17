@@ -10,7 +10,7 @@ def get_testing_directory() -> str:
             testing_directory = f.read()
             return testing_directory
     else:
-        raise ValueError('please run setup_data.py before attempting to run unit tests')
+        raise ValueError('please run setup_testing_directory.py before attempting to run unit tests')
 
 def setup_testing_directory(datadir: Union[str, os.PathLike], overwrite: bool = False) -> str:
     testing_path_file = 'testing_directory.txt'

@@ -34,7 +34,7 @@ def L1(pil: Union[PIL_image, np.ndarray], np_image: np.ndarray) -> float:
 
 def test_resize():
     pil_resized = pil_transforms.Resize((224, 224))(pil_image)
-    resized = transforms.Resize(224)(image)
+    resized = transforms.Resize((224, 224))(image)
     l1 = L1(pil_resized, resized)
     assert l1 - 88.9559 < TOL
 
