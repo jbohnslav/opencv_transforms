@@ -136,7 +136,7 @@ class Resize(object):
         # assert isinstance(size, int) or (isinstance(size, collections.Iterable) and len(size) == 2)
         if isinstance(size, int):
             self.size = size
-        elif isinstance(size, collections.Iterable) and len(size) == 2:
+        elif isinstance(size, collections.abc.Iterable) and len(size) == 2:
             if type(size) == list:
                 size = tuple(size)
             self.size = size
