@@ -109,7 +109,7 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
     if not _is_numpy_image(img):
         raise TypeError('img should be numpy image. Got {}'.format(type(img)))
     if not (isinstance(size, int) or
-            (isinstance(size, collections.Iterable) and len(size) == 2)):
+            (isinstance(size, collections.abc.Iterable) and len(size) == 2)):
         raise TypeError('Got inappropriate size arg: {}'.format(size))
     h, w = img.shape[0], img.shape[1]
 
@@ -391,11 +391,18 @@ def adjust_contrast(img, contrast_factor):
     # it's because you have to change dtypes multiple times
     if not _is_numpy_image(img):
         raise TypeError('img should be numpy Image. Got {}'.format(type(img)))
-    table = np.array([(i - 74) * contrast_factor + 74
+    
+    # input is RGB
+    if img.ndim > 2 and img.shape[2] > 1:
+        mean_value = round(cv2.mean(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))[0])
+    else:
+        mean_value = round(cv2.mean(img)[0])
+        
+    table = np.array([(i - mean_value) * contrast_factor + mean_value
                       for i in range(0, 256)]).clip(0, 255).astype('uint8')
     # enhancer = ImageEnhance.Contrast(img)
     # img = enhancer.enhance(contrast_factor)
-    if img.shape[2] == 1:
+    if img.ndim == 2 or img.shape[2] == 1:
         return cv2.LUT(img, table)[:, :, np.newaxis]
     else:
         return cv2.LUT(img, table)
