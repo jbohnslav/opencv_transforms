@@ -7,14 +7,13 @@ import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 from PIL.Image import Image as PIL_image # for typing
-
+import pytest
 from torchvision import transforms as pil_transforms
 from torchvision.transforms import functional as F_pil
+
 from opencv_transforms import transforms
 from opencv_transforms import functional as F
-
 from setup_testing_directory import get_testing_directory
-from utils import L1
 
 TOL = 1e-4
 
@@ -28,25 +27,19 @@ imfile = random.choice(train_images)
 pil_image = Image.open(imfile)
 image = cv2.cvtColor(cv2.imread(imfile, 1), cv2.COLOR_BGR2RGB)
 
+class TestContrast:
+    @pytest.mark.parametrize('random_seed', [1,2,3,4])
+    @pytest.mark.parametrize('contrast_factor', [0.0, 0.5, 1.0, 2.0])
+    def test_contrast(self, contrast_factor, random_seed):
+        random.seed(random_seed)
+        imfile = random.choice(train_images)
+        pil_image = Image.open(imfile)
+        image = np.array(pil_image).copy()
+        
+        pil_enhanced = F_pil.adjust_contrast(pil_image, contrast_factor)
+        np_enhanced = F.adjust_contrast(image, contrast_factor)
+        assert np.array_equal(np.array(pil_enhanced), np_enhanced.squeeze())
 
-def test_resize():
-    pil_resized = pil_transforms.Resize((224, 224))(pil_image)
-    resized = transforms.Resize((224, 224))(image)
-    l1 = L1(pil_resized, resized)
-    assert l1 - 88.9559 < TOL
 
-def test_rotation():
-    random.seed(1)
-    pil = pil_transforms.RandomRotation(10)(pil_image)
-    random.seed(1)
-    np_img = transforms.RandomRotation(10)(image)
-    l1 = L1(pil, np_img)
-    assert l1 - 86.7955 < TOL
 
-def test_five_crop():
-    pil = pil_transforms.FiveCrop((224, 224))(pil_image)
-    cv = transforms.FiveCrop((224, 224))(image)
-    pil_stacked = np.hstack([np.asarray(i) for i in pil])
-    cv_stacked = np.hstack(cv)
-    l1 = L1(pil_stacked, cv_stacked)
-    assert l1 - 22.0444 < TOL
+
