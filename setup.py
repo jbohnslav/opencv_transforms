@@ -5,13 +5,13 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name='opencv_transforms',
-    version='0.0.5',
-    author='Jim Bohnslav', 
+    version='0.0.6',
+    author='Jim Bohnslav',
     author_email='JBohnslav@gmail.com',
-    description='A drop-in replacement for Torchvision Transforms using OpenCV', 
+    description='A drop-in replacement for Torchvision Transforms using OpenCV',
     keywords='pytorch image augmentations',
-    long_description=long_description, 
-    long_description_content_type='text/markdown', 
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/jbohnslav/opencv_transforms',
     packages=setuptools.find_packages(),
     classifiers=[
