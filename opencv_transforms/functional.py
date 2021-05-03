@@ -30,10 +30,7 @@ _cv2_interpolation_to_str = {
     'bicubic': cv2.INTER_CUBIC,
     'lanczos': cv2.INTER_LANCZOS4
 }
-_cv2_interpolation_from_str = {
-    v: k
-    for k, v in _cv2_interpolation_to_str.items()
-}
+_cv2_interpolation_from_str = {v: k for k, v in _cv2_interpolation_to_str.items()}
 
 
 def _is_pil_image(img):
@@ -108,8 +105,7 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
     """
     if not _is_numpy_image(img):
         raise TypeError('img should be numpy image. Got {}'.format(type(img)))
-    if not (isinstance(size, int) or
-            (isinstance(size, collections.abc.Iterable) and len(size) == 2)):
+    if not (isinstance(size, int) or (isinstance(size, collections.abc.Iterable) and len(size) == 2)):
         raise TypeError('Got inappropriate size arg: {}'.format(size))
     h, w = img.shape[0], img.shape[1]
 
@@ -124,9 +120,7 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
             ow = int(size * w / h)
     else:
         ow, oh = size[1], size[0]
-    output = cv2.resize(img,
-                        dsize=(ow, oh),
-                        interpolation=interpolation)
+    output = cv2.resize(img, dsize=(ow, oh), interpolation=interpolation)
     if img.shape[2] == 1:
         return output[:, :, np.newaxis]
     else:
@@ -134,8 +128,7 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
 
 
 def scale(*args, **kwargs):
-    warnings.warn("The use of the transforms.Scale transform is deprecated, " +
-                  "please use transforms.Resize instead.")
+    warnings.warn("The use of the transforms.Scale transform is deprecated, " + "please use transforms.Resize instead.")
     return resize(*args, **kwargs)
 
 
@@ -164,19 +157,16 @@ def pad(img, padding, fill=0, padding_mode='constant'):
         Numpy image: padded image.
     """
     if not _is_numpy_image(img):
-        raise TypeError('img should be numpy ndarray. Got {}'.format(
-            type(img)))
+        raise TypeError('img should be numpy ndarray. Got {}'.format(type(img)))
     if not isinstance(padding, (numbers.Number, tuple, list)):
         raise TypeError('Got inappropriate padding arg')
     if not isinstance(fill, (numbers.Number, str, tuple)):
         raise TypeError('Got inappropriate fill arg')
     if not isinstance(padding_mode, str):
         raise TypeError('Got inappropriate padding_mode arg')
-    if isinstance(padding,
-                  collections.Sequence) and len(padding) not in [2, 4]:
-        raise ValueError(
-            "Padding must be an int or a 2, or 4 element tuple, not a " +
-            "{} element tuple".format(len(padding)))
+    if isinstance(padding, collections.Sequence) and len(padding) not in [2, 4]:
+        raise ValueError("Padding must be an int or a 2, or 4 element tuple, not a " +
+                         "{} element tuple".format(len(padding)))
 
     assert padding_mode in ['constant', 'edge', 'reflect', 'symmetric'], \
         'Padding mode should be either constant, edge, reflect or symmetric'
@@ -193,20 +183,20 @@ def pad(img, padding, fill=0, padding_mode='constant'):
         pad_bottom = padding[3]
     if img.shape[2] == 1:
         return cv2.copyMakeBorder(img,
-                                   top=pad_top,
-                                   bottom=pad_bottom,
-                                   left=pad_left,
-                                   right=pad_right,
-                                   borderType=_cv2_pad_to_str[padding_mode],
-                                   value=fill)[:, :, np.newaxis]
+                                  top=pad_top,
+                                  bottom=pad_bottom,
+                                  left=pad_left,
+                                  right=pad_right,
+                                  borderType=_cv2_pad_to_str[padding_mode],
+                                  value=fill)[:, :, np.newaxis]
     else:
         return cv2.copyMakeBorder(img,
-                                   top=pad_top,
-                                   bottom=pad_bottom,
-                                   left=pad_left,
-                                   right=pad_right,
-                                   borderType=_cv2_pad_to_str[padding_mode],
-                                   value=fill)
+                                  top=pad_top,
+                                  bottom=pad_bottom,
+                                  left=pad_left,
+                                  right=pad_right,
+                                  borderType=_cv2_pad_to_str[padding_mode],
+                                  value=fill)
 
 
 def crop(img, i, j, h, w):
@@ -305,15 +295,12 @@ def five_crop(img, size):
     if isinstance(size, numbers.Number):
         size = (int(size), int(size))
     else:
-        assert len(
-            size) == 2, "Please provide only two dimensions (h, w) for size."
+        assert len(size) == 2, "Please provide only two dimensions (h, w) for size."
 
     h, w = img.shape[0:2]
     crop_h, crop_w = size
     if crop_w > w or crop_h > h:
-        raise ValueError(
-            "Requested crop size {} is bigger than input size {}".format(
-                size, (h, w)))
+        raise ValueError("Requested crop size {} is bigger than input size {}".format(size, (h, w)))
     tl = crop(img, 0, 0, crop_h, crop_w)
     tr = crop(img, 0, w - crop_w, crop_h, crop_w)
     bl = crop(img, h - crop_h, 0, crop_h, crop_w)
@@ -341,8 +328,7 @@ def ten_crop(img, size, vertical_flip=False):
     if isinstance(size, numbers.Number):
         size = (int(size), int(size))
     else:
-        assert len(
-            size) == 2, "Please provide only two dimensions (h, w) for size."
+        assert len(size) == 2, "Please provide only two dimensions (h, w) for size."
 
     first_five = five_crop(img, size)
 
@@ -367,8 +353,7 @@ def adjust_brightness(img, brightness_factor):
     """
     if not _is_numpy_image(img):
         raise TypeError('img should be numpy Image. Got {}'.format(type(img)))
-    table = np.array([i * brightness_factor
-                      for i in range(0, 256)]).clip(0, 255).astype('uint8')
+    table = np.array([i * brightness_factor for i in range(0, 256)]).clip(0, 255).astype('uint8')
     # same thing but a bit slower
     # cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
     if img.shape[2] == 1:
@@ -391,15 +376,19 @@ def adjust_contrast(img, contrast_factor):
     # it's because you have to change dtypes multiple times
     if not _is_numpy_image(img):
         raise TypeError('img should be numpy Image. Got {}'.format(type(img)))
-    
+
     # input is RGB
-    if img.ndim > 2 and img.shape[2] > 1:
+    if img.ndim > 2 and img.shape[2] == 3:
         mean_value = round(cv2.mean(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))[0])
-    else:
+    elif img.ndim == 2:
+        # grayscale input
         mean_value = round(cv2.mean(img)[0])
-        
-    table = np.array([(i - mean_value) * contrast_factor + mean_value
-                      for i in range(0, 256)]).clip(0, 255).astype('uint8')
+    else:
+        # multichannel input
+        mean_value = round(np.mean(img))
+
+    table = np.array([(i - mean_value) * contrast_factor + mean_value for i in range(0, 256)]).clip(0,
+                                                                                                    255).astype('uint8')
     # enhancer = ImageEnhance.Contrast(img)
     # img = enhancer.enhance(contrast_factor)
     if img.ndim == 2 or img.shape[2] == 1:
@@ -451,8 +440,7 @@ def adjust_hue(img, hue_factor):
 
     # This function takes 160ms! should be avoided
     if not (-0.5 <= hue_factor <= 0.5):
-        raise ValueError(
-            'hue_factor is not in [-0.5, 0.5].'.format(hue_factor))
+        raise ValueError('hue_factor is not in [-0.5, 0.5].'.format(hue_factor))
     if not _is_numpy_image(img):
         raise TypeError('img should be numpy Image. Got {}'.format(type(img)))
     img = Image.fromarray(img)
@@ -494,8 +482,7 @@ def adjust_gamma(img, gamma, gain=1):
         raise ValueError('Gamma should be a non-negative real number')
     # from here
     # https://stackoverflow.com/questions/33322488/how-to-change-image-illumination-in-opencv-python/41061351
-    table = np.array([((i / 255.0)**gamma) * 255 * gain
-                      for i in np.arange(0, 256)]).astype('uint8')
+    table = np.array([((i / 255.0)**gamma) * 255 * gain for i in np.arange(0, 256)]).astype('uint8')
     if img.shape[2] == 1:
         return cv2.LUT(img, table)[:, :, np.newaxis]
     else:
@@ -547,23 +534,14 @@ def _get_affine_matrix(center, angle, translate, scale, shear):
 
     T = np.array([[1, 0, translate[0]], [0, 1, translate[1]], [0, 0, 1]])
     C = np.array([[1, 0, center[0]], [0, 1, center[1]], [0, 0, 1]])
-    RSS = np.array(
-        [[math.cos(angle) * scale, -math.sin(angle + shear) * scale, 0],
-         [math.sin(angle) * scale,
-          math.cos(angle + shear) * scale, 0], [0, 0, 1]])
+    RSS = np.array([[math.cos(angle) * scale, -math.sin(angle + shear) * scale, 0],
+                    [math.sin(angle) * scale, math.cos(angle + shear) * scale, 0], [0, 0, 1]])
     matrix = T @ C @ RSS @ np.linalg.inv(C)
 
     return matrix[:2, :]
 
 
-def affine(img,
-           angle,
-           translate,
-           scale,
-           shear,
-           interpolation=cv2.INTER_LINEAR,
-           mode=cv2.BORDER_CONSTANT,
-           fillcolor=0):
+def affine(img, angle, translate, scale, shear, interpolation=cv2.INTER_LINEAR, mode=cv2.BORDER_CONSTANT, fillcolor=0):
     """Apply affine transformation on the image keeping image center invariant
     Args:
         img (numpy ndarray): numpy ndarray to be transformed.
@@ -593,22 +571,13 @@ def affine(img,
     matrix = _get_affine_matrix(center, angle, translate, scale, shear)
 
     if img.shape[2] == 1:
-        return cv2.warpAffine(img,
-                              matrix,
-                              output_size[::-1],
-                              interpolation,
-                              borderMode=mode,
+        return cv2.warpAffine(img, matrix, output_size[::-1], interpolation, borderMode=mode,
                               borderValue=fillcolor)[:, :, np.newaxis]
     else:
-        return cv2.warpAffine(img,
-                              matrix,
-                              output_size[::-1],
-                              interpolation,
-                              borderMode=mode,
-                              borderValue=fillcolor)
+        return cv2.warpAffine(img, matrix, output_size[::-1], interpolation, borderMode=mode, borderValue=fillcolor)
 
 
-def to_grayscale(img, num_output_channels: int=1):
+def to_grayscale(img, num_output_channels: int = 1):
     """Convert image to grayscale version of image.
     Args:
         img (numpy ndarray): Image to be converted to grayscale.
@@ -619,13 +588,11 @@ def to_grayscale(img, num_output_channels: int=1):
         numpy ndarray: Grayscale version of the image.
     """
     if not _is_numpy_image(img):
-        raise TypeError('img should be numpy ndarray. Got {}'.format(
-            type(img)))
+        raise TypeError('img should be numpy ndarray. Got {}'.format(type(img)))
 
     if num_output_channels == 1:
         img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis]
     elif num_output_channels == 3:
         # much faster than doing cvtColor to go back to gray
-        img = np.broadcast_to(
-            cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis], img.shape)
+        img = np.broadcast_to(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis], img.shape)
     return img
