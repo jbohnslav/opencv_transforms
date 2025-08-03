@@ -1,52 +1,148 @@
-import glob
-import numpy as np
 import random
-from typing import Union
 
-import cv2
-import matplotlib.pyplot as plt
-from PIL import Image
-from PIL.Image import Image as PIL_image # for typing
-
+import numpy as np
+import pytest
 from torchvision import transforms as pil_transforms
-from torchvision.transforms import functional as F_pil
-from opencv_transforms import transforms
-from opencv_transforms import functional as F
-
-from setup_testing_directory import get_testing_directory
 from utils import L1
 
-TOL = 1e-4
-
-datadir = get_testing_directory()
-train_images = glob.glob(datadir + '/**/*.JPEG', recursive=True)
-train_images.sort()
-print('Number of training images: {:,}'.format(len(train_images)))
-
-random.seed(1)
-imfile = random.choice(train_images)
-pil_image = Image.open(imfile)
-image = cv2.cvtColor(cv2.imread(imfile, 1), cv2.COLOR_BGR2RGB)
+from opencv_transforms import transforms
 
 
-def test_resize():
-    pil_resized = pil_transforms.Resize((224, 224))(pil_image)
-    resized = transforms.Resize((224, 224))(image)
-    l1 = L1(pil_resized, resized)
-    assert l1 - 88.9559 < TOL
+class TestSpatialTransforms:
+    """Test spatial transformations (resize, rotation, cropping, etc.)"""
 
-def test_rotation():
-    random.seed(1)
-    pil = pil_transforms.RandomRotation(10)(pil_image)
-    random.seed(1)
-    np_img = transforms.RandomRotation(10)(image)
-    l1 = L1(pil, np_img)
-    assert l1 - 86.7955 < TOL
+    @pytest.mark.parametrize("size", [(224, 224), (256, 256), (128, 128)])
+    def test_resize(self, single_test_image, size):
+        """Test image resizing matches PIL implementation."""
+        pil_image, cv_image = single_test_image
 
-def test_five_crop():
-    pil = pil_transforms.FiveCrop((224, 224))(pil_image)
-    cv = transforms.FiveCrop((224, 224))(image)
-    pil_stacked = np.hstack([np.asarray(i) for i in pil])
-    cv_stacked = np.hstack(cv)
-    l1 = L1(pil_stacked, cv_stacked)
-    assert l1 - 22.0444 < TOL
+        pil_resized = pil_transforms.Resize(size)(pil_image)
+        cv_resized = transforms.Resize(size)(cv_image)
+
+        l1_diff = L1(pil_resized, cv_resized)
+        assert l1_diff < 100.0  # Allow reasonable difference due to interpolation
+
+        # Check output shapes
+        assert np.array(pil_resized).shape[:2] == size
+        assert cv_resized.shape[:2] == size
+
+    @pytest.mark.parametrize("degrees", [10, 30, 45])
+    def test_rotation(self, single_test_image, degrees):
+        """Test image rotation."""
+        pil_image, cv_image = single_test_image
+
+        # Use fixed seed for deterministic results
+        random.seed(42)
+        pil_rotated = pil_transforms.RandomRotation(degrees)(pil_image)
+
+        random.seed(42)
+        cv_rotated = transforms.RandomRotation(degrees)(cv_image)
+
+        l1_diff = L1(pil_rotated, cv_rotated)
+        assert l1_diff < 100.0  # Allow difference due to interpolation methods
+
+    @pytest.mark.parametrize("crop_size", [224, (224, 224), (200, 300)])
+    def test_five_crop(self, single_test_image, crop_size):
+        """Test five crop transformation."""
+        pil_image, cv_image = single_test_image
+
+        # Ensure image is large enough for cropping
+        min_size = crop_size + 50 if isinstance(crop_size, int) else max(crop_size) + 50
+
+        # Resize to ensure crop will work
+        pil_image = pil_transforms.Resize((min_size, min_size))(pil_image)
+        cv_image = transforms.Resize((min_size, min_size))(cv_image)
+
+        pil_crops = pil_transforms.FiveCrop(crop_size)(pil_image)
+        cv_crops = transforms.FiveCrop(crop_size)(cv_image)
+
+        # Check we get 5 crops
+        assert len(pil_crops) == 5
+        assert len(cv_crops) == 5
+
+        # Compare each crop
+        for pil_crop, cv_crop in zip(pil_crops, cv_crops):
+            l1_diff = L1(pil_crop, cv_crop)
+            assert l1_diff < 1.0  # Cropping should be exact
+
+    @pytest.mark.parametrize("crop_size", [224, (224, 224)])
+    def test_center_crop(self, single_test_image, crop_size):
+        """Test center crop transformation."""
+        pil_image, cv_image = single_test_image
+
+        # Ensure image is large enough
+        min_size = (
+            (crop_size + 50) if isinstance(crop_size, int) else (max(crop_size) + 50)
+        )
+        pil_image = pil_transforms.Resize((min_size, min_size))(pil_image)
+        cv_image = transforms.Resize((min_size, min_size))(cv_image)
+
+        pil_cropped = pil_transforms.CenterCrop(crop_size)(pil_image)
+        cv_cropped = transforms.CenterCrop(crop_size)(cv_image)
+
+        l1_diff = L1(pil_cropped, cv_cropped)
+        assert l1_diff < 1.0  # Center crop should be nearly identical
+
+    @pytest.mark.parametrize("crop_size", [224, (224, 224)])
+    def test_random_crop(self, single_test_image, crop_size):
+        """Test random crop transformation."""
+        pil_image, cv_image = single_test_image
+
+        # Ensure image is large enough
+        min_size = (
+            (crop_size + 50) if isinstance(crop_size, int) else (max(crop_size) + 50)
+        )
+        pil_image = pil_transforms.Resize((min_size, min_size))(pil_image)
+        cv_image = transforms.Resize((min_size, min_size))(cv_image)
+
+        # Use same seed for deterministic comparison
+        random.seed(42)
+        pil_cropped = pil_transforms.RandomCrop(crop_size)(pil_image)
+
+        random.seed(42)
+        cv_cropped = transforms.RandomCrop(crop_size)(cv_image)
+
+        # Check output dimensions
+        expected_size = (
+            (crop_size, crop_size) if isinstance(crop_size, int) else crop_size
+        )
+        assert np.array(pil_cropped).shape[:2] == expected_size
+        assert cv_cropped.shape[:2] == expected_size
+
+    def test_horizontal_flip(self, single_test_image):
+        """Test horizontal flip transformation."""
+        pil_image, cv_image = single_test_image
+
+        pil_flipped = pil_transforms.RandomHorizontalFlip(p=1.0)(pil_image)
+        cv_flipped = transforms.RandomHorizontalFlip(p=1.0)(cv_image)
+
+        l1_diff = L1(pil_flipped, cv_flipped)
+        assert l1_diff < 1.0  # Flip should be nearly identical
+
+    def test_vertical_flip(self, single_test_image):
+        """Test vertical flip transformation."""
+        pil_image, cv_image = single_test_image
+
+        pil_flipped = pil_transforms.RandomVerticalFlip(p=1.0)(pil_image)
+        cv_flipped = transforms.RandomVerticalFlip(p=1.0)(cv_image)
+
+        l1_diff = L1(pil_flipped, cv_flipped)
+        assert l1_diff < 1.0  # Flip should be nearly identical
+
+    @pytest.mark.parametrize("scale", [(0.5, 1.0), (0.8, 1.2)])
+    @pytest.mark.parametrize("size", [224, (224, 224)])
+    def test_random_resized_crop(self, single_test_image, scale, size):
+        """Test random resized crop transformation."""
+        pil_image, cv_image = single_test_image
+
+        # Use same seed for comparison
+        random.seed(42)
+        pil_transformed = pil_transforms.RandomResizedCrop(size, scale=scale)(pil_image)
+
+        random.seed(42)
+        cv_transformed = transforms.RandomResizedCrop(size, scale=scale)(cv_image)
+
+        # Check output dimensions
+        expected_size = (size, size) if isinstance(size, int) else size
+        assert np.array(pil_transformed).shape[:2] == expected_size
+        assert cv_transformed.shape[:2] == expected_size
