@@ -38,7 +38,7 @@ def setup_testing_directory(
     if not should_setup:
         return testing_directory
 
-    testing_directory = datadir
+    testing_directory = str(datadir)
     assert os.path.isdir(testing_directory)
     assert os.path.isdir(os.path.join(testing_directory, "train"))
     assert os.path.isdir(os.path.join(testing_directory, "val"))

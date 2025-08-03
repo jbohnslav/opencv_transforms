@@ -8,7 +8,7 @@ try:
     import accimage
 except ImportError:
     accimage = None
-import collections
+import collections.abc
 import numbers
 import warnings
 

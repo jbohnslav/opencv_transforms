@@ -1,4 +1,4 @@
-import collections
+import collections.abc
 import math
 import numbers
 import random
@@ -1007,8 +1007,15 @@ class RandomAffine:
             self.shear,
             (img.shape[1], img.shape[0]),
         )
+<<<<<<< HEAD
+        angle, translations, scale, shear = ret
+        return F.affine(
+            img, angle, translations, scale, shear,
+            interpolation=self.interpolation, fillcolor=self.fillcolor
+=======
         return F.affine(
             img, *ret, interpolation=self.interpolation, fillcolor=self.fillcolor
+>>>>>>> origin/master
         )
 
     def __repr__(self):

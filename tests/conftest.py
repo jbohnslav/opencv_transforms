@@ -1,3 +1,4 @@
+import random
 from typing import List
 from typing import Tuple
 
@@ -46,7 +47,6 @@ def single_test_image(test_images) -> Tuple[Image.Image, np.ndarray]:
 @pytest.fixture
 def random_test_image(test_images) -> Tuple[Image.Image, np.ndarray]:
     """Get a random test image in both PIL and OpenCV format."""
-    import random
     pil_images, cv_images = test_images
     idx = random.randint(0, len(pil_images) - 1)
     return pil_images[idx], cv_images[idx]
