@@ -8,3 +8,4 @@ __pycache__/
 
 tests/testing_directory.txt
 .idea
+uv.lock

@@ -52,8 +52,13 @@ def benchmark_transform(transform_func: Callable, images: List) -> float:
     return avg_time
 
 
-def run_benchmark(transform_name: str, pil_transform: Callable, cv_transform: Callable,
-                  pil_images: List, cv_images: List) -> Dict:
+def run_benchmark(
+    transform_name: str,
+    pil_transform: Callable,
+    cv_transform: Callable,
+    pil_images: List,
+    cv_images: List,
+) -> Dict:
     """Run benchmark comparing PIL and OpenCV transforms."""
     print(f"\nBenchmarking {transform_name}...")
 
@@ -65,15 +70,15 @@ def run_benchmark(transform_name: str, pil_transform: Callable, cv_transform: Ca
 
     speedup = pil_time / cv_time
 
-    print(f"PIL avg time: {pil_time*1000:.3f} ms")
-    print(f"OpenCV avg time: {cv_time*1000:.3f} ms")
+    print(f"PIL avg time: {pil_time * 1000:.3f} ms")
+    print(f"OpenCV avg time: {cv_time * 1000:.3f} ms")
     print(f"Speedup: {speedup:.2f}x")
 
     return {
         "transform": transform_name,
         "pil_time": pil_time,
         "cv_time": cv_time,
-        "speedup": speedup
+        "speedup": speedup,
     }
 
 
@@ -90,8 +95,8 @@ def plot_results(results: List[Dict], save_path: Optional[str] = None):
     x = np.arange(len(transforms))
     width = 0.35
 
-    ax1.bar(x - width/2, pil_times, width, label="PIL", color="blue", alpha=0.7)
-    ax1.bar(x + width/2, cv_times, width, label="OpenCV", color="green", alpha=0.7)
+    ax1.bar(x - width / 2, pil_times, width, label="PIL", color="blue", alpha=0.7)
+    ax1.bar(x + width / 2, cv_times, width, label="OpenCV", color="green", alpha=0.7)
     ax1.set_xlabel("Transform")
     ax1.set_ylabel("Average Time (ms)")
     ax1.set_title("Transform Execution Time Comparison")
@@ -133,72 +138,70 @@ def main():
         {
             "name": "Resize (256x256)",
             "pil": pil_transforms.Resize((256, 256)),
-            "cv": cv_transforms.Resize((256, 256))
+            "cv": cv_transforms.Resize((256, 256)),
         },
         {
             "name": "CenterCrop (224x224)",
             "pil": pil_transforms.CenterCrop(224),
-            "cv": cv_transforms.CenterCrop(224)
+            "cv": cv_transforms.CenterCrop(224),
         },
         {
             "name": "RandomCrop (224x224)",
             "pil": pil_transforms.RandomCrop(224),
-            "cv": cv_transforms.RandomCrop(224)
+            "cv": cv_transforms.RandomCrop(224),
         },
         {
             "name": "RandomHorizontalFlip",
             "pil": pil_transforms.RandomHorizontalFlip(p=1.0),
-            "cv": cv_transforms.RandomHorizontalFlip(p=1.0)
+            "cv": cv_transforms.RandomHorizontalFlip(p=1.0),
         },
         {
             "name": "RandomRotation (10°)",
             "pil": pil_transforms.RandomRotation(10),
-            "cv": cv_transforms.RandomRotation(10)
+            "cv": cv_transforms.RandomRotation(10),
         },
         {
             "name": "ColorJitter",
             "pil": pil_transforms.ColorJitter(brightness=0.2, contrast=0.2),
-            "cv": cv_transforms.ColorJitter(brightness=0.2, contrast=0.2)
+            "cv": cv_transforms.ColorJitter(brightness=0.2, contrast=0.2),
         },
         {
             "name": "RandomResizedCrop (224x224)",
             "pil": pil_transforms.RandomResizedCrop(224),
-            "cv": cv_transforms.RandomResizedCrop(224)
+            "cv": cv_transforms.RandomResizedCrop(224),
         },
         {
             "name": "Grayscale",
             "pil": pil_transforms.Grayscale(num_output_channels=3),
-            "cv": cv_transforms.Grayscale(num_output_channels=3)
-        }
+            "cv": cv_transforms.Grayscale(num_output_channels=3),
+        },
     ]
 
     # Run benchmarks
     results = []
     for config in transform_configs:
         result = run_benchmark(
-            config["name"],
-            config["pil"],
-            config["cv"],
-            pil_images,
-            cv_images
+            config["name"], config["pil"], config["cv"], pil_images, cv_images
         )
         results.append(result)
 
     # Print summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("BENCHMARK SUMMARY")
-    print("="*60)
+    print("=" * 60)
     print(f"{'Transform':<30} {'PIL (ms)':<12} {'OpenCV (ms)':<12} {'Speedup':<10}")
-    print("-"*60)
+    print("-" * 60)
 
     for result in results:
-        print(f"{result['transform']:<30} "
-              f"{result['pil_time']*1000:<12.3f} "
-              f"{result['cv_time']*1000:<12.3f} "
-              f"{result['speedup']:<10.2f}x")
+        print(
+            f"{result['transform']:<30} "
+            f"{result['pil_time'] * 1000:<12.3f} "
+            f"{result['cv_time'] * 1000:<12.3f} "
+            f"{result['speedup']:<10.2f}x"
+        )
 
     avg_speedup = np.mean([r["speedup"] for r in results])
-    print("-"*60)
+    print("-" * 60)
     print(f"{'Average Speedup:':<30} {'':<12} {'':<12} {avg_speedup:<10.2f}x")
 
     # Plot results

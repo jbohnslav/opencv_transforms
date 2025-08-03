@@ -24,12 +24,6 @@ dependencies = [
 Homepage = "https://github.com/jbohnslav/opencv_transforms"
 Repository = "https://github.com/jbohnslav/opencv_transforms"
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=6.0.0",
-    "matplotlib>=3.0.0",
-]
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -43,6 +37,8 @@ dev = [
     "pytest>=7.0.1",
     "ruff>=0.1.0",
     "pre-commit>=3.0.0",
+    "ty>=0.0.1a16",
+    "matplotlib>=3.7.5",
 ]
 
 [tool.ruff]
