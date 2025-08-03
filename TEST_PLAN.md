@@ -2,6 +2,20 @@
 
 This document provides a comprehensive analysis of the test coverage for transforms in the opencv_transforms library.
 
+## Current Test Coverage
+
+```
+Name                              Stmts   Miss   Cover   Missing
+----------------------------------------------------------------
+opencv_transforms/__init__.py         0      0 100.00%
+opencv_transforms/functional.py     223    114  48.88%
+opencv_transforms/transforms.py     419    231  44.87%
+----------------------------------------------------------------
+TOTAL                               642    345  46.26%
+```
+
+**Overall coverage: 46.26%** - More than half of the codebase lacks test coverage.
+
 ## Testing Philosophy
 
 **PyTorch/torchvision is the ground truth.** All OpenCV transforms must produce results that match the corresponding PyTorch transforms as closely as possible. Tests should verify this equivalence across:

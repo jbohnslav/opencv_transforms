@@ -6,15 +6,14 @@
 
 ### Setting up the environment:
 ```bash
-# Create virtual environment
-uv venv
+# Create virtual environment and install all dependencies (including dev)
+uv sync
 
 # Activate it
 source .venv/bin/activate
-
-# Install dependencies
-uv pip install pre-commit
 ```
+
+**Note**: `uv sync` automatically installs all dependencies including dev dependencies. Never use `uv pip install`.
 
 ## Pre-commit Hooks
 

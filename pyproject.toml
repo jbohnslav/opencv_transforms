@@ -35,6 +35,7 @@ packages = ["opencv_transforms"]
 dev = [
     "datasets>=2.4.0",
     "pytest>=7.0.1",
+    "pytest-cov>=4.0.0",
     "ruff>=0.1.0",
     "pre-commit>=3.0.0",
     "ty>=0.0.1a16",
@@ -90,4 +91,17 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.pytest.ini_options]
+addopts = "--cov=opencv_transforms --cov-report=term-missing --cov-report=html"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["opencv_transforms"]
+omit = ["tests/*", "*/conftest.py"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
 
