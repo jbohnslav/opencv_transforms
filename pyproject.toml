@@ -1,0 +1,97 @@
+[project]
+name = "opencv-transforms"
+version = "0.0.6"
+description = "A drop-in replacement for Torchvision Transforms using OpenCV"
+authors = [{name = "Jim Bohnslav", email = "JBohnslav@gmail.com"}]
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["pytorch", "image", "augmentations", "opencv", "computer vision"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.16.0",
+    "opencv-python>=3.4.0",
+    "torch>=1.0.0",
+    "pillow>=6.0.0",
+    "torchvision>=0.4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/jbohnslav/opencv_transforms"
+Repository = "https://github.com/jbohnslav/opencv_transforms"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0.0",
+    "matplotlib>=3.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["opencv_transforms"]
+
+[dependency-groups]
+dev = [
+    "datasets>=2.4.0",
+    "pytest>=7.0.1",
+    "ruff>=0.1.0",
+    "pre-commit>=3.0.0",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG001", # unused-function-argument
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "TID",    # flake8-tidy-imports
+    "Q",      # flake8-quotes
+    "PL",     # pylint
+    "PT",     # flake8-pytest-style
+    "RUF",    # ruff-specific rules
+]
+ignore = [
+    "E501",   # line too long, handled by black/formatter
+    "E721",   # type comparison with ==
+    "B008",   # do not perform function calls in argument defaults
+    "C901",   # too complex
+    "PLR09",  # too many arguments, returns, branches, etc.
+    "PLR2004", # magic value comparison
+    "TCH002", # third-party import
+    "TCH003", # standard library import
+    "B904",   # raise from within except
+    "PT018",  # composite assertion
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["PT", "ARG", "PLR2004"]
+"benchmark.py" = ["T201"]  # allow print statements
+"**/functional.py" = ["ARG001"]  # allow unused arguments in functional interface
+
+[tool.ruff.lint.isort]
+known-first-party = ["opencv_transforms"]
+force-single-line = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+

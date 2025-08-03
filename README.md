@@ -7,8 +7,36 @@ This repository is intended as a faster drop-in replacement for [Pytorch's Torch
 * Tested on Windows 10 and Ubuntu 18.04. There is evidence that OpenCV doesn't work well with multithreading on Linux / MacOS, for example `num_workers >0` in a pytorch `DataLoader`. I haven't run into this issue yet. 
 
 ## Installation
-opencv_transforms is now a pip package! Simply use
-* `pip install opencv_transforms`
+
+### Using pip
+opencv_transforms is available as a pip package:
+```bash
+pip install opencv_transforms
+```
+
+### Using UV (recommended for development)
+This project now uses [UV](https://docs.astral.sh/uv/) for dependency management. To install for development:
+
+1. Install UV if you haven't already:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+2. Clone the repository and install dependencies:
+```bash
+git clone https://github.com/jbohnslav/opencv_transforms.git
+cd opencv_transforms
+uv sync --all-extras  # This installs all dependencies including dev dependencies
+```
+
+3. Run commands in the UV environment:
+```bash
+uv run python your_script.py
+# or activate the virtual environment
+source .venv/bin/activate  # On Unix/macOS
+# or
+.venv\Scripts\activate  # On Windows
+```
 
 ## Usage
 **Breaking change! Please note the import syntax!** 
