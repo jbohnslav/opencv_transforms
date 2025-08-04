@@ -101,7 +101,7 @@ The following transforms lack dedicated unit tests:
 12. **RandomSizedCrop** (opencv_transforms/transforms.py:573) - Deprecated, but no test coverage
 
 ### Advanced Transforms
-13. **LinearTransformation** (opencv_transforms/transforms.py:666) - No tests for linear transformation
+13. ~~**LinearTransformation** (opencv_transforms/transforms.py:666) - No tests for linear transformation~~ ✅ **COMPLETED**
 
 ### Color Transforms (Incomplete)
 14. **ColorJitter** (saturation & hue components) - Only brightness and contrast are tested, missing:
@@ -143,7 +143,7 @@ Note: `adjust_gamma` (functional.py:483) has a test but not through the transfor
 10. **Lambda** - Edge case usage
 11. **RandomOrder** - Rare use case
 12. **RandomChoice** - Less common pattern
-13. **LinearTransformation** - Specialized use case
+13. ~~**LinearTransformation** - Specialized use case~~ ✅ **COMPLETED**
 14. ~~**Scale** & **RandomSizedCrop** - Deprecated~~ ✅ COMPLETED (Scale done)
 
 ## Testing Approach
