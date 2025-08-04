@@ -559,10 +559,28 @@ def rotate(img, angle, resample=False, expand=False, center=None):
     if center is None:
         center = (cols / 2, rows / 2)
     M = cv2.getRotationMatrix2D(center, angle, 1)
+
+    # Set default interpolation to NEAREST to match PIL/torchvision default behavior
+    interpolation = cv2.INTER_NEAREST if not resample or resample is None else resample
+
     if img.shape[2] == 1:
-        return cv2.warpAffine(img, M, (cols, rows))[:, :, np.newaxis]
+        return cv2.warpAffine(
+            img,
+            M,
+            (cols, rows),
+            flags=interpolation,
+            borderMode=cv2.BORDER_CONSTANT,
+            borderValue=0,
+        )[:, :, np.newaxis]
     else:
-        return cv2.warpAffine(img, M, (cols, rows))
+        return cv2.warpAffine(
+            img,
+            M,
+            (cols, rows),
+            flags=interpolation,
+            borderMode=cv2.BORDER_CONSTANT,
+            borderValue=0,
+        )
 
 
 def _get_affine_matrix(center, angle, translate, scale, shear):
