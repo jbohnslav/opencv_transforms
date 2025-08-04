@@ -23,6 +23,22 @@
 
 **Main Issue**: The resize function at `opencv_transforms/functional.py:124` has a type conversion problem where OpenCV can't parse the `dsize` parameter. Other failures are assertion errors where OpenCV transforms don't match PyTorch transforms exactly.
 
+## Critical Implementation Differences
+
+### Anti-aliasing in Resize Operations
+**Issue**: PIL/torchvision automatically applies anti-aliasing when downsampling images, while OpenCV's INTER_LINEAR does not. This causes large pixel differences (up to 108 pixels out of 255) when resizing images to smaller dimensions.
+
+**Impact**: 
+- Resize tests show max pixel differences of 94-108 when downsampling
+- Differences are proportional to the downsampling ratio (worse for 500×500→128×128 than 500×500→256×256)
+- Upsampling shows minimal differences (max ~1 pixel)
+
+**Solution Required**: 
+1. Detect when downsampling occurs (output size < input size)
+2. Apply anti-aliasing filter before resize operation
+3. Consider using cv2.INTER_AREA for downsampling (OpenCV's recommended approach)
+4. Match PIL's default behavior of always applying anti-aliasing for downsampling
+
 This document provides a comprehensive analysis of the test coverage for transforms in the opencv_transforms library.
 
 ## Current Test Coverage

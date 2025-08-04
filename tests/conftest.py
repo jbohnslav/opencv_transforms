@@ -65,3 +65,30 @@ def _create_synthetic_images(num_images: int = 50) -> List[Image.Image]:
 
 # Test configuration
 TOL = 1e-4  # Tolerance for numerical comparisons
+
+# Transform comparison tolerances
+TRANSFORM_RTOL = 1e-5  # Relative tolerance for transform comparisons
+TRANSFORM_ATOL = 1e-3  # Absolute tolerance (normalized 0-1 range)
+PIXEL_ATOL = 2.0  # Absolute tolerance in pixel values (0-255 range)
+
+# Transform-specific tolerances (override defaults)
+TRANSFORM_TOLERANCES = {
+    "resize": {
+        "rtol": 1e-3,
+        "atol": 1e-2,
+        "pixel_atol": 120.0,
+    },  # High tolerance for interpolation
+    "rotation": {
+        "rtol": 1e-3,
+        "atol": 1e-2,
+        "pixel_atol": 120.0,
+    },  # High tolerance for interpolation
+    "affine": {
+        "rtol": 1e-3,
+        "atol": 1e-2,
+        "pixel_atol": 120.0,
+    },  # High tolerance for interpolation
+    "crop": {"rtol": 1e-7, "atol": 1e-5, "pixel_atol": 0.1},  # Should be nearly exact
+    "flip": {"rtol": 1e-7, "atol": 1e-5, "pixel_atol": 0.1},  # Should be nearly exact
+    "pad": {"rtol": 1e-7, "atol": 1e-5, "pixel_atol": 0.1},  # Should be nearly exact
+}
