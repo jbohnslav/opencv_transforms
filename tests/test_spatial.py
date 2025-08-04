@@ -1,7 +1,9 @@
 import random
+import warnings
 
 import numpy as np
 import pytest
+import torch
 from conftest import TRANSFORM_TOLERANCES
 from torchvision import transforms as pil_transforms
 from utils import assert_transforms_close
@@ -34,9 +36,12 @@ class TestSpatialTransforms:
         pil_image, cv_image = single_test_image
 
         # Use fixed seed for deterministic results
+        # Both torchvision and opencv_transforms now use torch random for compatibility
+        torch.manual_seed(42)
         random.seed(42)
         pil_rotated = pil_transforms.RandomRotation(degrees)(pil_image)
 
+        torch.manual_seed(42)
         random.seed(42)
         cv_rotated = transforms.RandomRotation(degrees)(cv_image)
 
@@ -156,3 +161,102 @@ class TestSpatialTransforms:
 
         assert np.array(pil_transformed).shape[:2] == expected_shape
         assert cv_transformed.shape[:2] == expected_shape
+
+    @pytest.mark.parametrize("size", [(224, 224), (256, 256), (128, 128)])
+    def test_scale_deprecated(self, single_test_image, size):
+        """Test deprecated Scale transform matches Resize behavior."""
+        pil_image, cv_image = single_test_image
+
+        # Test that Scale produces the same result as Resize
+        cv_resized = transforms.Resize(size)(cv_image)
+
+        # Test Scale (should produce deprecation warning)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            cv_scaled = transforms.Scale(size)(cv_image)
+            # Verify deprecation warning was issued
+            assert len(w) == 1
+            assert issubclass(w[-1].category, UserWarning)
+            assert "deprecated" in str(w[-1].message)
+
+        # Scale should produce identical results to Resize
+        assert np.array_equal(cv_scaled, cv_resized)
+        assert cv_scaled.shape[:2] == size
+
+    @pytest.mark.parametrize("padding", [10, (5, 10), (5, 10, 15, 20)])
+    @pytest.mark.parametrize("fill", [0, 128, (255, 0, 0)])
+    @pytest.mark.parametrize(
+        "padding_mode", ["constant", "edge", "reflect", "symmetric"]
+    )
+    def test_pad(self, single_test_image, padding, fill, padding_mode):
+        """Test padding functionality matches PIL implementation."""
+        pil_image, cv_image = single_test_image
+
+        # Skip color fill for grayscale images or non-constant modes
+        if isinstance(fill, tuple) and (
+            len(cv_image.shape) != 3 or padding_mode != "constant"
+        ):
+            pytest.skip(
+                "Color fill only supported for RGB images with constant padding"
+            )
+
+        pil_padded = pil_transforms.Pad(padding, fill=fill, padding_mode=padding_mode)(
+            pil_image
+        )
+        cv_padded = transforms.Pad(padding, fill=fill, padding_mode=padding_mode)(
+            cv_image
+        )
+
+        # Use strict tolerances for padding (should be nearly exact)
+        tolerances = TRANSFORM_TOLERANCES.get("pad", {})
+        assert_transforms_close(pil_padded, cv_padded, **tolerances)
+
+        # Calculate expected output shape
+        if isinstance(padding, int):
+            expected_h = cv_image.shape[0] + 2 * padding
+            expected_w = cv_image.shape[1] + 2 * padding
+        elif len(padding) == 2:
+            expected_h = cv_image.shape[0] + 2 * padding[1]
+            expected_w = cv_image.shape[1] + 2 * padding[0]
+        else:  # len(padding) == 4
+            expected_h = cv_image.shape[0] + padding[1] + padding[3]
+            expected_w = cv_image.shape[1] + padding[0] + padding[2]
+
+        assert cv_padded.shape[0] == expected_h
+        assert cv_padded.shape[1] == expected_w
+
+    @pytest.mark.parametrize("crop_size", [100, (100, 150)])
+    @pytest.mark.parametrize("vertical_flip", [False, True])
+    def test_ten_crop(self, single_test_image, crop_size, vertical_flip):
+        """Test ten crop functionality."""
+        pil_image, cv_image = single_test_image
+
+        # Ensure image is large enough for cropping
+        min_size = crop_size if isinstance(crop_size, int) else max(crop_size)
+        if min(cv_image.shape[:2]) < min_size + 50:
+            # Resize image to be large enough
+            resize_size = min_size + 100
+            pil_image = pil_transforms.Resize((resize_size, resize_size))(pil_image)
+            cv_image = transforms.Resize((resize_size, resize_size))(cv_image)
+
+        pil_crops = pil_transforms.TenCrop(crop_size, vertical_flip=vertical_flip)(
+            pil_image
+        )
+        cv_crops = transforms.TenCrop(crop_size, vertical_flip=vertical_flip)(cv_image)
+
+        # Should return exactly 10 crops
+        assert len(pil_crops) == 10
+        assert len(cv_crops) == 10
+
+        # Each crop should have the expected size
+        expected_shape = (
+            (crop_size, crop_size) if isinstance(crop_size, int) else crop_size
+        )
+
+        for _i, (pil_crop, cv_crop) in enumerate(zip(pil_crops, cv_crops)):
+            assert np.array(pil_crop).shape[:2] == expected_shape
+            assert cv_crop.shape[:2] == expected_shape
+
+            # Compare each crop with appropriate tolerances
+            tolerances = TRANSFORM_TOLERANCES.get("crop", {})
+            assert_transforms_close(pil_crop, cv_crop, **tolerances)

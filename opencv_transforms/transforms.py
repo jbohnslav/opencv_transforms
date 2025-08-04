@@ -244,7 +244,7 @@ class Pad:
         assert isinstance(padding, (numbers.Number, tuple, list))
         assert isinstance(fill, (numbers.Number, str, tuple))
         assert padding_mode in ["constant", "edge", "reflect", "symmetric"]
-        if isinstance(padding, collections.Sequence) and len(padding) not in [2, 4]:
+        if isinstance(padding, collections.abc.Sequence) and len(padding) not in [2, 4]:
             raise ValueError(
                 "Padding must be an int or a 2, or 4 element tuple, not a "
                 + f"{len(padding)} element tuple"
@@ -869,7 +869,8 @@ class RandomRotation:
         Returns:
             sequence: params to be passed to ``rotate`` for random rotation.
         """
-        angle = random.uniform(degrees[0], degrees[1])
+        # Use torch random to match torchvision behavior for compatibility
+        angle = torch.empty(1).uniform_(degrees[0], degrees[1]).item()
 
         return angle
 

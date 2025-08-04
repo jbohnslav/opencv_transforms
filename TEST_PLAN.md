@@ -1,6 +1,10 @@
 # Test Coverage Analysis for opencv_transforms
 
-## Current Test Failures (13 failed, 37 passed)
+## Current Test Failures (~~15~~ ~~13~~ 9 failed, ~~35~~ ~~37~~ 41 passed)
+
+**Recent Fixes**: 
+- ✅ Fixed 3 rotation transform failures through random seed synchronization and interpolation method corrections.
+- ✅ Fixed 4 contrast test failures through PIL precision matching and tolerance-based testing.
 
 ### Color Transform Failures (RESOLVED):
 - ~~`test_grayscale_contrast[0.5]` - AssertionError: color transform doesn't match PyTorch~~ ✅ **FIXED**: Updated tolerance to allow ±1 pixel differences due to PIL vs OpenCV grayscale conversion precision differences
@@ -16,9 +20,9 @@
 - `test_resize[size0]` - cv2.error: OpenCV(4.11.0) Bad argument in function 'resize': Can't parse 'dsize'. Sequence item with index 0 has a wrong type
 - `test_resize[size1]` - cv2.error: Same resize dsize parsing error
 - `test_resize[size2]` - cv2.error: Same resize dsize parsing error
-- `test_rotation[10]` - AssertionError: rotation transform doesn't match PyTorch
-- `test_rotation[30]` - AssertionError: rotation transform doesn't match PyTorch  
-- `test_rotation[45]` - AssertionError: rotation transform doesn't match PyTorch
+- ~~`test_rotation[10]` - AssertionError: rotation transform doesn't match PyTorch~~ **FIXED**: Random seed synchronization and interpolation method
+- ~~`test_rotation[30]` - AssertionError: rotation transform doesn't match PyTorch~~ **FIXED**: Random seed synchronization and interpolation method
+- ~~`test_rotation[45]` - AssertionError: rotation transform doesn't match PyTorch~~ **FIXED**: Random seed synchronization and interpolation method
 - `test_five_crop[224]` - AssertionError: five crop transform doesn't match PyTorch
 - `test_five_crop[crop_size1]` - AssertionError: five crop transform doesn't match PyTorch
 - `test_five_crop[crop_size2]` - AssertionError: five crop transform doesn't match PyTorch
@@ -27,9 +31,33 @@
 - `test_random_resized_crop[size1-scale0]` - AssertionError: random resized crop doesn't match PyTorch
 - `test_random_resized_crop[size1-scale1]` - AssertionError: random resized crop doesn't match PyTorch
 
-**Main Issue**: The resize function at `opencv_transforms/functional.py:124` has a type conversion problem where OpenCV can't parse the `dsize` parameter. Other failures are assertion errors where OpenCV transforms don't match PyTorch transforms exactly.
+**Main Issue**: The resize function at `opencv_transforms/functional.py:124` has a type conversion problem where OpenCV can't parse the `dsize` parameter. ~~Rotation tests failed due to random seed synchronization issues and incorrect interpolation method~~ **FIXED**. Other failures are assertion errors where OpenCV transforms don't match PyTorch transforms exactly.
 
 ## Critical Implementation Differences
+
+### ~~Rotation Transform Issues~~ **FIXED**
+**Issue**: RandomRotation tests were failing due to:
+1. Different random number generators (PIL used torch, OpenCV used Python random)
+2. Wrong default interpolation method (OpenCV used CUBIC, PIL uses NEAREST)
+3. Missing border handling parameters
+
+**Impact**: 
+- Max pixel differences of 255 (complete mismatch)
+- Mean differences of 35-47 out of 255
+- Tests failing with large tolerance thresholds
+
+**Solution Applied**: 
+1. ✅ Changed `RandomRotation.get_params()` to use `torch.empty(1).uniform_()` for consistency
+2. ✅ Updated default interpolation from `cv2.INTER_CUBIC` to `cv2.INTER_NEAREST` 
+3. ✅ Added proper border handling with `cv2.BORDER_CONSTANT` and `borderValue=0`
+4. ✅ Updated tests to set both `torch.manual_seed()` and `random.seed()` for deterministic results
+5. ✅ Added comprehensive debugging utilities in `debug/debug_rotation.py`
+
+**Results**: 
+- Mean pixel differences reduced from ~35-47 to ~2-8 (out of 255)
+- Only 0.1-0.3% of pixels exceed the 120 pixel threshold
+- Random angles now perfectly synchronized between PIL and OpenCV
+- Remaining differences are due to fundamental algorithm variations between libraries
 
 ### Anti-aliasing in Resize Operations
 **Issue**: PIL/torchvision automatically applies anti-aliasing when downsampling images, while OpenCV's INTER_LINEAR does not. This causes large pixel differences (up to 108 pixels out of 255) when resizing images to smaller dimensions.
@@ -78,7 +106,7 @@ The following transforms have existing unit tests:
 3. **RandomCrop** - tested in `test_random_crop` (tests/test_spatial.py:87)
 4. **RandomHorizontalFlip** - tested in `test_horizontal_flip` (tests/test_spatial.py:112)
 5. **RandomVerticalFlip** - tested in `test_vertical_flip` (tests/test_spatial.py:122)
-6. **RandomRotation** - tested in `test_rotation` (tests/test_spatial.py:30)
+6. **RandomRotation** - ✅ **IMPROVED** tested in `test_rotation` (tests/test_spatial.py:30) - Fixed random seed sync and interpolation
 7. **FiveCrop** - tested in `test_five_crop` (tests/test_spatial.py:45)
 8. **RandomResizedCrop** - tested in `test_random_resized_crop` (tests/test_spatial.py:134)
 9. **Grayscale** - tested indirectly in `test_grayscale_conversion` (tests/test_color.py:72)
@@ -89,14 +117,14 @@ The following transforms have existing unit tests:
 The following transforms lack dedicated unit tests:
 
 ### Core Transforms
-1. **Compose** (opencv_transforms/transforms.py:62) - No tests for composition behavior
-2. **ToTensor** (opencv_transforms/transforms.py:90) - No tests for tensor conversion
-3. **Normalize** (opencv_transforms/transforms.py:109) - No tests for normalization
+1. ~~**Compose** (opencv_transforms/transforms.py:62) - No tests for composition behavior~~ ✅ **COMPLETED**
+2. ~~**ToTensor** (opencv_transforms/transforms.py:90) - No tests for tensor conversion~~ ✅ **COMPLETED**
+3. ~~**Normalize** (opencv_transforms/transforms.py:109) - No tests for normalization~~ ✅ **COMPLETED**
 
 ### Spatial Transforms
-4. **Scale** (opencv_transforms/transforms.py:179) - Deprecated, but no test coverage
-5. **Pad** (opencv_transforms/transforms.py:220) - No tests for padding functionality
-6. **TenCrop** (opencv_transforms/transforms.py:623) - No tests for ten crop functionality
+4. ~~**Scale** (opencv_transforms/transforms.py:179) - Deprecated, but no test coverage~~ ✅ COMPLETED
+5. ~~**Pad** (opencv_transforms/transforms.py:220) - No tests for padding functionality~~ ✅ COMPLETED
+6. ~~**TenCrop** (opencv_transforms/transforms.py:623) - No tests for ten crop functionality~~ ✅ COMPLETED
 7. **RandomAffine** (opencv_transforms/transforms.py:894) - No tests for affine transformations
 
 ### Random Transforms
@@ -107,7 +135,7 @@ The following transforms lack dedicated unit tests:
 12. **RandomSizedCrop** (opencv_transforms/transforms.py:573) - Deprecated, but no test coverage
 
 ### Advanced Transforms
-13. **LinearTransformation** (opencv_transforms/transforms.py:666) - No tests for linear transformation
+13. ~~**LinearTransformation** (opencv_transforms/transforms.py:666) - No tests for linear transformation~~ ✅ **COMPLETED**
 
 ### Color Transforms (Incomplete)
 14. **ColorJitter** (saturation & hue components) - ~~Only brightness and contrast are tested~~ Brightness and contrast now fully working ✅, missing:
@@ -120,28 +148,28 @@ The following transforms lack dedicated unit tests:
 
 The following functional methods in `functional.py` lack direct unit tests:
 
-- `to_tensor` (functional.py:49)
-- `normalize` (functional.py:69)
-- `pad` (functional.py:140)
+- ~~`to_tensor` (functional.py:49)~~ ✅ **COMPLETED**
+- ~~`normalize` (functional.py:69)~~ ✅ **COMPLETED**
+- ~~`pad` (functional.py:140)~~ ✅ **COMPLETED**
 - ~~`adjust_contrast` (functional.py:387)~~ ✅ **Now fully tested and working**
 - `adjust_saturation` (functional.py:420)
 - `adjust_hue` (functional.py:439)
 - `affine` (functional.py:571)
-- `ten_crop` (functional.py:326)
+- ~~`ten_crop` (functional.py:326)~~ ✅ **COMPLETED**
 
 Note: `adjust_gamma` (functional.py:483) has a test but not through the transforms API.
 
 ## Recommended Testing Priority
 
 ### High Priority (Core functionality)
-1. **ToTensor** - Critical for PyTorch integration
-2. **Normalize** - Essential for model preprocessing
-3. **Compose** - Fundamental for transform pipelines
-4. **Pad** - Common preprocessing operation
+1. ~~**ToTensor** - Critical for PyTorch integration~~ ✅ **COMPLETED**
+2. ~~**Normalize** - Essential for model preprocessing~~ ✅ **COMPLETED**  
+3. ~~**Compose** - Fundamental for transform pipelines~~ ✅ **COMPLETED**
+4. ~~**Pad** - Common preprocessing operation~~ ✅ **COMPLETED**
 5. **RandomAffine** - Complex transform with multiple parameters
 
 ### Medium Priority (Common use cases)
-6. **TenCrop** - Used in evaluation pipelines
+6. ~~**TenCrop** - Used in evaluation pipelines~~ ✅ **COMPLETED**
 7. **ColorJitter** (complete) - Important augmentation
 8. **RandomGrayscale** - Common augmentation
 9. **RandomApply** - Useful for conditional augmentation
@@ -150,8 +178,8 @@ Note: `adjust_gamma` (functional.py:483) has a test but not through the transfor
 10. **Lambda** - Edge case usage
 11. **RandomOrder** - Rare use case
 12. **RandomChoice** - Less common pattern
-13. **LinearTransformation** - Specialized use case
-14. **Scale** & **RandomSizedCrop** - Deprecated
+13. ~~**LinearTransformation** - Specialized use case~~ ✅ **COMPLETED**
+14. ~~**Scale** & **RandomSizedCrop** - Deprecated~~ ✅ COMPLETED (Scale done)
 
 ## Testing Approach
 
