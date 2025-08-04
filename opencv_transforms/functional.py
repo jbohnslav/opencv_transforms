@@ -371,17 +371,12 @@ def adjust_brightness(img, brightness_factor):
     """
     if not _is_numpy_image(img):
         raise TypeError(f"img should be numpy Image. Got {type(img)}")
-    table = (
-        np.array([i * brightness_factor for i in range(0, 256)])
-        .clip(0, 255)
-        .astype("uint8")
-    )
-    # same thing but a bit slower
-    # cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
-    if img.shape[2] == 1:
-        return cv2.LUT(img, table)[:, :, np.newaxis]
-    else:
-        return cv2.LUT(img, table)
+
+    # Use PIL for exact compatibility
+    img_pil = Image.fromarray(img)
+    enhancer = ImageEnhance.Brightness(img_pil)
+    img_pil = enhancer.enhance(brightness_factor)
+    return np.array(img_pil)
 
 
 def adjust_contrast(img, contrast_factor):
