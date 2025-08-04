@@ -1,5 +1,28 @@
 # Test Coverage Analysis for opencv_transforms
 
+## Current Test Failures (15 failed, 35 passed)
+
+### Color Transform Failures (2):
+- `test_grayscale_contrast[0.5]` - AssertionError: color transform doesn't match PyTorch
+- `test_grayscale_contrast[1.0]` - AssertionError: color transform doesn't match PyTorch
+
+### Spatial Transform Failures (13):
+- `test_resize[size0]` - cv2.error: OpenCV(4.11.0) Bad argument in function 'resize': Can't parse 'dsize'. Sequence item with index 0 has a wrong type
+- `test_resize[size1]` - cv2.error: Same resize dsize parsing error
+- `test_resize[size2]` - cv2.error: Same resize dsize parsing error
+- `test_rotation[10]` - AssertionError: rotation transform doesn't match PyTorch
+- `test_rotation[30]` - AssertionError: rotation transform doesn't match PyTorch  
+- `test_rotation[45]` - AssertionError: rotation transform doesn't match PyTorch
+- `test_five_crop[224]` - AssertionError: five crop transform doesn't match PyTorch
+- `test_five_crop[crop_size1]` - AssertionError: five crop transform doesn't match PyTorch
+- `test_five_crop[crop_size2]` - AssertionError: five crop transform doesn't match PyTorch
+- `test_center_crop[224]` - AssertionError: center crop transform doesn't match PyTorch
+- `test_center_crop[crop_size1]` - AssertionError: center crop transform doesn't match PyTorch
+- `test_random_resized_crop[size1-scale0]` - AssertionError: random resized crop doesn't match PyTorch
+- `test_random_resized_crop[size1-scale1]` - AssertionError: random resized crop doesn't match PyTorch
+
+**Main Issue**: The resize function at `opencv_transforms/functional.py:124` has a type conversion problem where OpenCV can't parse the `dsize` parameter. Other failures are assertion errors where OpenCV transforms don't match PyTorch transforms exactly.
+
 This document provides a comprehensive analysis of the test coverage for transforms in the opencv_transforms library.
 
 ## Current Test Coverage
