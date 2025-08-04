@@ -83,9 +83,9 @@ The following transforms have existing unit tests:
 The following transforms lack dedicated unit tests:
 
 ### Core Transforms
-1. **Compose** (opencv_transforms/transforms.py:62) - No tests for composition behavior
-2. **ToTensor** (opencv_transforms/transforms.py:90) - No tests for tensor conversion
-3. **Normalize** (opencv_transforms/transforms.py:109) - No tests for normalization
+1. ~~**Compose** (opencv_transforms/transforms.py:62) - No tests for composition behavior~~ ✅ **COMPLETED**
+2. ~~**ToTensor** (opencv_transforms/transforms.py:90) - No tests for tensor conversion~~ ✅ **COMPLETED**
+3. ~~**Normalize** (opencv_transforms/transforms.py:109) - No tests for normalization~~ ✅ **COMPLETED**
 
 ### Spatial Transforms
 4. **Scale** (opencv_transforms/transforms.py:179) - Deprecated, but no test coverage
@@ -127,9 +127,9 @@ Note: `adjust_gamma` (functional.py:483) has a test but not through the transfor
 ## Recommended Testing Priority
 
 ### High Priority (Core functionality)
-1. **ToTensor** - Critical for PyTorch integration
-2. **Normalize** - Essential for model preprocessing
-3. **Compose** - Fundamental for transform pipelines
+1. ~~**ToTensor** - Critical for PyTorch integration~~ ✅ **COMPLETED**
+2. ~~**Normalize** - Essential for model preprocessing~~ ✅ **COMPLETED**  
+3. ~~**Compose** - Fundamental for transform pipelines~~ ✅ **COMPLETED**
 4. **Pad** - Common preprocessing operation
 5. **RandomAffine** - Complex transform with multiple parameters
 
