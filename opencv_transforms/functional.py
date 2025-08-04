@@ -394,21 +394,21 @@ def adjust_contrast(img, contrast_factor):
 
     # input is RGB
     if img.ndim > 2 and img.shape[2] == 3:
-        mean_value = round(cv2.mean(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))[0])
+        mean_value = cv2.mean(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))[0]
     elif img.ndim == 2:
         # grayscale input
-        mean_value = round(cv2.mean(img)[0])
+        mean_value = cv2.mean(img)[0]
     else:
         # multichannel input
-        mean_value = round(np.mean(img))
+        mean_value = np.mean(img)
 
     table = (
         np.array(
             [(i - mean_value) * contrast_factor + mean_value for i in range(0, 256)]
-        )
-        .clip(0, 255)
-        .astype("uint8")
-    )
+        ).clip(0, 255)
+        # PIL rounds by adding 0.5 before converting to int
+        + 0.5
+    ).astype("uint8")
     # enhancer = ImageEnhance.Contrast(img)
     # img = enhancer.enhance(contrast_factor)
     if img.ndim == 2 or img.shape[2] == 1:
