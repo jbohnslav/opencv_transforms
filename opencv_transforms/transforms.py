@@ -244,7 +244,7 @@ class Pad:
         assert isinstance(padding, (numbers.Number, tuple, list))
         assert isinstance(fill, (numbers.Number, str, tuple))
         assert padding_mode in ["constant", "edge", "reflect", "symmetric"]
-        if isinstance(padding, collections.Sequence) and len(padding) not in [2, 4]:
+        if isinstance(padding, collections.abc.Sequence) and len(padding) not in [2, 4]:
             raise ValueError(
                 "Padding must be an int or a 2, or 4 element tuple, not a "
                 + f"{len(padding)} element tuple"
