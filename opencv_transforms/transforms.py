@@ -782,33 +782,70 @@ class ColorJitter:
             Transform which randomly adjusts brightness, contrast and
             saturation in a random order.
         """
-        transforms = []
+        # Match torchvision's exact implementation
+        # First generate the random permutation (torchvision always uses 4)
+        fn_idx = torch.randperm(4)
 
-        if brightness is not None:
-            brightness_factor = random.uniform(brightness[0], brightness[1])
+        # Then generate the factors in the same order as torchvision
+        brightness_factor = (
+            None
+            if brightness is None
+            else float(torch.empty(1).uniform_(brightness[0], brightness[1]))
+        )
+        contrast_factor = (
+            None
+            if contrast is None
+            else float(torch.empty(1).uniform_(contrast[0], contrast[1]))
+        )
+        saturation_factor = (
+            None
+            if saturation is None
+            else float(torch.empty(1).uniform_(saturation[0], saturation[1]))
+        )
+        hue_factor = (
+            None if hue is None else float(torch.empty(1).uniform_(hue[0], hue[1]))
+        )
+
+        transforms = []
+        if brightness_factor is not None:
             transforms.append(
                 Lambda(lambda img: F.adjust_brightness(img, brightness_factor))
             )
-
-        if contrast is not None:
-            contrast_factor = random.uniform(contrast[0], contrast[1])
+        if contrast_factor is not None:
             transforms.append(
                 Lambda(lambda img: F.adjust_contrast(img, contrast_factor))
             )
-
-        if saturation is not None:
-            saturation_factor = random.uniform(saturation[0], saturation[1])
+        if saturation_factor is not None:
             transforms.append(
                 Lambda(lambda img: F.adjust_saturation(img, saturation_factor))
             )
-
-        if hue is not None:
-            hue_factor = random.uniform(hue[0], hue[1])
+        if hue_factor is not None:
             transforms.append(Lambda(lambda img: F.adjust_hue(img, hue_factor)))
 
-        random.shuffle(transforms)
-        transform = Compose(transforms)
+        # Reorder based on fn_idx, but only use the indices for transforms we have
+        # Map the indices to only the transforms we're using
+        active_indices = []
+        idx_map = {}
+        if brightness is not None:
+            idx_map[0] = len(active_indices)
+            active_indices.append(0)
+        if contrast is not None:
+            idx_map[1] = len(active_indices)
+            active_indices.append(1)
+        if saturation is not None:
+            idx_map[2] = len(active_indices)
+            active_indices.append(2)
+        if hue is not None:
+            idx_map[3] = len(active_indices)
+            active_indices.append(3)
 
+        # Reorder transforms based on fn_idx
+        ordered_transforms = []
+        for idx in fn_idx:
+            if idx.item() in idx_map:
+                ordered_transforms.append(transforms[idx_map[idx.item()]])
+
+        transform = Compose(ordered_transforms)
         return transform
 
     def __call__(self, img):
