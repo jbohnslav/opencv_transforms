@@ -66,8 +66,41 @@ Should be 1.5 to 10 times faster than PIL. See benchmarks
 The changes start to add up when you compose multiple transformations together.
 ![composed transformations](benchmarks/benchmarking_Resize_flip_brightness_contrast_rotate.png)
 
+## Debug Utilities
+
+The package includes optional debug utilities for investigating differences between PIL (torchvision) and OpenCV implementations:
+
+```python
+# Basic debugging
+from opencv_transforms.debug import utils
+result = utils.compare_contrast_outputs(image, contrast_factor=0.5)
+
+# Create test summary across multiple contrast factors
+summary = utils.create_contrast_test_summary(image)
+
+# Analyze PIL precision issues
+utils.analyze_pil_precision_issue(image)
+```
+
+### Visualization (requires matplotlib)
+```python
+# Install dev dependencies (includes debug utilities)
+uv sync
+
+# Create comparison figures
+from opencv_transforms.debug.visualization import create_comparison_figure
+create_comparison_figure(original, pil_result, cv_result, "Contrast Transform")
+```
+
+### Dataset Testing (requires datasets library)
+```python
+from opencv_transforms.debug.dataset_utils import test_with_dataset_image
+results = test_with_dataset_image("beans", num_samples=3)
+```
+
 ## TODO
 - [x] Initial commit with all currently implemented torchvision transforms
 - [x] Cityscapes benchmarks
+- [x] Debug utilities for investigating PIL/OpenCV differences
 - [ ] Make the `resample` flag on `RandomRotation`, `RandomAffine` actually do something
 - [ ] Speed up augmentation in saturation and hue. Currently, fastest way is to convert to a PIL image, perform same augmentation as Torchvision, then convert back to np.ndarray

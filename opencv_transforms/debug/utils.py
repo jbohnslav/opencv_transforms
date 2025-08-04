@@ -1,7 +1,7 @@
-"""Consolidated debug utilities from various debugging sessions.
+"""Debug utilities for investigating PIL/OpenCV transform differences.
 
-This module combines the useful debugging functions developed while
-investigating PIL/OpenCV transform differences.
+This module provides tools for comparing and debugging differences between
+PIL (torchvision) and OpenCV implementations of image transforms.
 """
 
 import cv2
@@ -15,7 +15,18 @@ from opencv_transforms import functional as F
 def compare_contrast_outputs(image, contrast_factor, verbose=True):
     """Compare contrast adjustment between PIL and OpenCV.
 
-    This function was developed from debug_contrast_real.py and other scripts.
+    Args:
+        image: Input image (PIL Image or numpy array)
+        contrast_factor: Factor for contrast adjustment
+        verbose: Whether to print detailed comparison results
+
+    Returns:
+        dict: Dictionary containing comparison results:
+            - equal: Whether outputs are exactly equal
+            - num_diff: Number of differing pixels
+            - total_pixels: Total number of pixels
+            - pil_result: PIL output as numpy array
+            - cv_result: OpenCV output as numpy array
     """
     # Handle both PIL and numpy inputs
     if isinstance(image, Image.Image):
@@ -77,7 +88,12 @@ def compare_contrast_outputs(image, contrast_factor, verbose=True):
 def debug_contrast_formula(test_values, mean, contrast_factor):
     """Debug the exact contrast formula calculations.
 
-    From debug_exact_computation.py - helps understand how PIL calculates contrast.
+    Helps understand how PIL calculates contrast adjustments.
+
+    Args:
+        test_values: List of pixel values to test
+        mean: Mean value used in contrast calculation
+        contrast_factor: Contrast adjustment factor
     """
     print(f"\nMean: {mean}")
     print(f"Contrast factor: {contrast_factor}")
@@ -99,8 +115,11 @@ def debug_contrast_formula(test_values, mean, contrast_factor):
 def analyze_pil_precision_issue(image):
     """Analyze PIL's precision issues with contrast=1.0.
 
-    From debug_test_setup.py - shows that PIL doesn't always return
-    the original image for contrast=1.0.
+    Shows that PIL doesn't always return the original image for contrast=1.0
+    due to floating-point precision issues.
+
+    Args:
+        image: Input image (PIL Image or numpy array)
     """
     if isinstance(image, np.ndarray):
         if image.ndim == 2:
@@ -137,7 +156,12 @@ def analyze_pil_precision_issue(image):
 def create_contrast_test_summary(image, contrast_factors=None):
     """Create a summary of contrast test results across multiple factors.
 
-    Consolidated from test_contrast_directly.py and final_debug.py.
+    Args:
+        image: Input image
+        contrast_factors: List of contrast factors to test (default: [0.0, 0.5, 1.0, 1.5, 2.0])
+
+    Returns:
+        list: List of dictionaries with test results for each contrast factor
     """
     if contrast_factors is None:
         contrast_factors = [0.0, 0.5, 1.0, 1.5, 2.0]
@@ -163,34 +187,3 @@ def create_contrast_test_summary(image, contrast_factors=None):
         )
 
     return results
-
-
-# Specific test from the debugging session
-def test_beans_dataset_image():
-    """Test with the actual image that was failing in tests."""
-    from datasets import load_dataset  # noqa: PLC0415
-
-    print("Loading beans dataset test image...")
-    train_dataset = load_dataset(
-        "beans", split="train", streaming=True, cache_dir="tests/.cache/"
-    )
-
-    samples = []
-    for i, sample in enumerate(train_dataset):
-        if i >= 50:
-            break
-        samples.append(sample["image"])
-
-    # Use first image (same as single_test_image fixture)
-    pil_image = samples[0]
-
-    print("\nTesting with beans dataset image (same as test fixture)")
-    create_contrast_test_summary(pil_image)
-
-    # Check precision issue
-    analyze_pil_precision_issue(pil_image)
-
-
-if __name__ == "__main__":
-    # Run test with beans dataset image
-    test_beans_dataset_image()
