@@ -254,3 +254,205 @@ class TestNormalize:
         cv_result = cv_compose(cv_image)
 
         assert torch.allclose(pil_result, cv_result, rtol=1e-5, atol=1e-6)
+
+
+class TestLinearTransformation:
+    def test_linear_transformation_init_valid_square_matrix(self):
+        """Test LinearTransformation initialization with valid square matrix."""
+        # 3x3 identity matrix for 1x1x3 image
+        matrix = torch.eye(3)
+        transform = cv_transforms.LinearTransformation(matrix)
+        assert torch.equal(transform.transformation_matrix, matrix)
+
+    def test_linear_transformation_init_non_square_matrix_error(self):
+        """Test LinearTransformation raises error for non-square matrix."""
+        # Non-square matrix
+        matrix = torch.rand(3, 4)
+        with pytest.raises(ValueError, match="transformation_matrix should be square"):
+            cv_transforms.LinearTransformation(matrix)
+
+    def test_linear_transformation_identity_transform(self):
+        """Test LinearTransformation with identity matrix produces no change."""
+        # Create test tensor
+        tensor = torch.rand(3, 4, 4)  # 3x4x4 = 48 elements
+
+        # Create identity transformation matrix
+        D = 3 * 4 * 4  # 48
+        identity_matrix = torch.eye(D)
+        transform = cv_transforms.LinearTransformation(identity_matrix)
+
+        result = transform(tensor)
+
+        # Result should be identical to input for identity transform
+        assert torch.allclose(result, tensor, rtol=1e-6, atol=1e-7)
+        assert result.shape == tensor.shape
+
+    def test_linear_transformation_simple_scaling(self):
+        """Test LinearTransformation with simple scaling matrix."""
+        # Create test tensor with known values
+        tensor = torch.ones(2, 2, 2)  # 2x2x2 = 8 elements, all ones
+
+        # Create scaling matrix (multiply by 2)
+        D = 2 * 2 * 2  # 8
+        scaling_matrix = torch.eye(D) * 2.0
+        transform = cv_transforms.LinearTransformation(scaling_matrix)
+
+        result = transform(tensor)
+        expected = tensor * 2.0
+
+        assert torch.allclose(result, expected, rtol=1e-6, atol=1e-7)
+        assert result.shape == tensor.shape
+
+    def test_linear_transformation_shape_preservation(self):
+        """Test LinearTransformation preserves tensor shape."""
+        shapes = [(1, 1, 1), (3, 32, 32), (1, 28, 28), (3, 64, 64)]
+
+        for shape in shapes:
+            tensor = torch.rand(shape)
+            D = shape[0] * shape[1] * shape[2]
+            matrix = torch.eye(D)
+            transform = cv_transforms.LinearTransformation(matrix)
+
+            result = transform(tensor)
+            assert result.shape == tensor.shape
+
+    def test_linear_transformation_incompatible_tensor_error(self):
+        """Test LinearTransformation raises error for incompatible tensor size."""
+        # Create transformation matrix for 3x3x3 tensor (27 elements)
+        matrix = torch.eye(27)
+        transform = cv_transforms.LinearTransformation(matrix)
+
+        # Try to apply to tensor with different total size
+        tensor = torch.rand(2, 2, 2)  # 8 elements, incompatible with 27
+
+        with pytest.raises(
+            ValueError, match="tensor and transformation matrix have incompatible shape"
+        ):
+            transform(tensor)
+
+    def test_linear_transformation_grayscale(self):
+        """Test LinearTransformation works with grayscale images."""
+        # Grayscale tensor
+        tensor = torch.rand(1, 28, 28)
+        D = 1 * 28 * 28  # 784
+
+        # Identity transformation
+        matrix = torch.eye(D)
+        transform = cv_transforms.LinearTransformation(matrix)
+
+        result = transform(tensor)
+        assert torch.allclose(result, tensor, rtol=1e-6, atol=1e-7)
+        assert result.shape == (1, 28, 28)
+
+    def test_linear_transformation_different_dtypes(self):
+        """Test LinearTransformation works with different tensor dtypes."""
+        dtypes = [torch.float32, torch.float64]
+
+        for dtype in dtypes:
+            tensor = torch.rand(2, 3, 3, dtype=dtype)
+            D = 2 * 3 * 3  # 18
+            matrix = torch.eye(D, dtype=dtype)
+            transform = cv_transforms.LinearTransformation(matrix)
+
+            result = transform(tensor)
+            assert result.dtype == dtype
+            assert result.shape == tensor.shape
+
+    def test_linear_transformation_single_pixel(self):
+        """Test LinearTransformation with single pixel images."""
+        # Single pixel RGB image
+        tensor = torch.rand(3, 1, 1)
+        matrix = torch.eye(3)
+        transform = cv_transforms.LinearTransformation(matrix)
+
+        result = transform(tensor)
+        assert torch.allclose(result, tensor, rtol=1e-6, atol=1e-7)
+        assert result.shape == (3, 1, 1)
+
+    def test_linear_transformation_zero_matrix(self):
+        """Test LinearTransformation with zero matrix."""
+        tensor = torch.rand(2, 2, 2)
+        D = 2 * 2 * 2  # 8
+        zero_matrix = torch.zeros(D, D)
+        transform = cv_transforms.LinearTransformation(zero_matrix)
+
+        result = transform(tensor)
+        expected = torch.zeros_like(tensor)
+
+        assert torch.allclose(result, expected, rtol=1e-6, atol=1e-7)
+
+    def test_linear_transformation_random_matrix(self):
+        """Test LinearTransformation with random transformation matrix."""
+        tensor = torch.rand(3, 4, 4)
+        D = 3 * 4 * 4  # 48
+
+        # Create random orthogonal matrix for stable transformation
+        random_matrix = torch.randn(D, D)
+        U, _, V = torch.svd(random_matrix)
+        orthogonal_matrix = torch.mm(U, V.t())
+
+        transform = cv_transforms.LinearTransformation(orthogonal_matrix)
+        result = transform(tensor)
+
+        # Should preserve shape but change values
+        assert result.shape == tensor.shape
+        assert not torch.allclose(result, tensor, rtol=1e-3, atol=1e-3)
+
+    def test_linear_transformation_mathematical_correctness(self):
+        """Test LinearTransformation applies correct mathematical operation."""
+        # Create simple test case we can verify manually
+        tensor = torch.tensor([[[1.0, 2.0], [3.0, 4.0]]])  # 1x2x2, flattened: [1,2,3,4]
+
+        # Create transformation matrix that reverses the order
+        # Flattened tensor: [1, 2, 3, 4] -> [4, 3, 2, 1]
+        D = 4
+        reverse_matrix = torch.zeros(D, D)
+        for i in range(D):
+            reverse_matrix[i, D - 1 - i] = 1.0
+
+        transform = cv_transforms.LinearTransformation(reverse_matrix)
+        result = transform(tensor)
+
+        # Expected: [[4, 3], [2, 1]] reshaped to 1x2x2
+        expected = torch.tensor([[[4.0, 3.0], [2.0, 1.0]]])
+        assert torch.allclose(result, expected, rtol=1e-6, atol=1e-7)
+
+    def test_linear_transformation_repr(self):
+        """Test LinearTransformation string representation."""
+        matrix = torch.eye(2)
+        transform = cv_transforms.LinearTransformation(matrix)
+
+        repr_str = repr(transform)
+        assert "LinearTransformation" in repr_str
+        assert "[[1.0, 0.0], [0.0, 1.0]]" in repr_str
+
+    def test_linear_transformation_large_tensor(self):
+        """Test LinearTransformation works with larger tensors."""
+        # Test with a reasonably sized tensor
+        tensor = torch.rand(3, 8, 8)  # 192 elements
+        D = 3 * 8 * 8
+
+        # Use identity for predictable results
+        matrix = torch.eye(D)
+        transform = cv_transforms.LinearTransformation(matrix)
+
+        result = transform(tensor)
+        assert torch.allclose(result, tensor, rtol=1e-6, atol=1e-7)
+        assert result.shape == tensor.shape
+
+    def test_linear_transformation_batch_compatibility(self):
+        """Test LinearTransformation is designed for single tensor (not batched)."""
+        # LinearTransformation expects single tensor, not batch
+        # This test verifies the expected behavior with 3D tensors only
+        tensor = torch.rand(3, 4, 4)
+        D = 3 * 4 * 4
+        matrix = torch.eye(D)
+        transform = cv_transforms.LinearTransformation(matrix)
+
+        result = transform(tensor)
+        assert result.shape == tensor.shape
+
+        # Verify it doesn't work with 4D batch tensors
+        batch_tensor = torch.rand(2, 3, 4, 4)  # Batch of 2
+        with pytest.raises(ValueError):
+            transform(batch_tensor)
