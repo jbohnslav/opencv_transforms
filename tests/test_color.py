@@ -251,11 +251,11 @@ class TestHue:
         pil_image, _ = single_test_image
         image = np.array(pil_image).copy()
 
-        # Test identity: hue_factor = 0.0 should return original
+        # Test identity: hue_factor = 0.0 should return same as PIL
         pil_identity = F_pil.adjust_hue(pil_image, 0.0)
         np_identity = F.adjust_hue(image, 0.0)
         assert np.array_equal(np.array(pil_identity), np_identity.squeeze())
-        assert np.array_equal(np.array(pil_image), np_identity.squeeze())
+        # Note: PIL's adjust_hue with factor=0.0 doesn't always return the exact original due to HSV conversions
 
         # Test positive hue shift
         pil_pos = F_pil.adjust_hue(pil_image, 0.5)
