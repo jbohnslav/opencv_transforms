@@ -88,9 +88,9 @@ The following transforms lack dedicated unit tests:
 3. ~~**Normalize** (opencv_transforms/transforms.py:109) - No tests for normalization~~ ✅ **COMPLETED**
 
 ### Spatial Transforms
-4. **Scale** (opencv_transforms/transforms.py:179) - Deprecated, but no test coverage
-5. **Pad** (opencv_transforms/transforms.py:220) - No tests for padding functionality
-6. **TenCrop** (opencv_transforms/transforms.py:623) - No tests for ten crop functionality
+4. ~~**Scale** (opencv_transforms/transforms.py:179) - Deprecated, but no test coverage~~ ✅ COMPLETED
+5. ~~**Pad** (opencv_transforms/transforms.py:220) - No tests for padding functionality~~ ✅ COMPLETED
+6. ~~**TenCrop** (opencv_transforms/transforms.py:623) - No tests for ten crop functionality~~ ✅ COMPLETED
 7. **RandomAffine** (opencv_transforms/transforms.py:894) - No tests for affine transformations
 
 ### Random Transforms
@@ -114,13 +114,13 @@ The following transforms lack dedicated unit tests:
 
 The following functional methods in `functional.py` lack direct unit tests:
 
-- `to_tensor` (functional.py:49)
-- `normalize` (functional.py:69)
-- `pad` (functional.py:140)
+- ~~`to_tensor` (functional.py:49)~~ ✅ **COMPLETED**
+- ~~`normalize` (functional.py:69)~~ ✅ **COMPLETED**
+- ~~`pad` (functional.py:140)~~ ✅ **COMPLETED**
 - `adjust_saturation` (functional.py:420)
 - `adjust_hue` (functional.py:439)
 - `affine` (functional.py:571)
-- `ten_crop` (functional.py:326)
+- ~~`ten_crop` (functional.py:326)~~ ✅ **COMPLETED**
 
 Note: `adjust_gamma` (functional.py:483) has a test but not through the transforms API.
 
@@ -130,11 +130,11 @@ Note: `adjust_gamma` (functional.py:483) has a test but not through the transfor
 1. ~~**ToTensor** - Critical for PyTorch integration~~ ✅ **COMPLETED**
 2. ~~**Normalize** - Essential for model preprocessing~~ ✅ **COMPLETED**  
 3. ~~**Compose** - Fundamental for transform pipelines~~ ✅ **COMPLETED**
-4. **Pad** - Common preprocessing operation
+4. ~~**Pad** - Common preprocessing operation~~ ✅ **COMPLETED**
 5. **RandomAffine** - Complex transform with multiple parameters
 
 ### Medium Priority (Common use cases)
-6. **TenCrop** - Used in evaluation pipelines
+6. ~~**TenCrop** - Used in evaluation pipelines~~ ✅ **COMPLETED**
 7. **ColorJitter** (complete) - Important augmentation
 8. **RandomGrayscale** - Common augmentation
 9. **RandomApply** - Useful for conditional augmentation
@@ -144,7 +144,7 @@ Note: `adjust_gamma` (functional.py:483) has a test but not through the transfor
 11. **RandomOrder** - Rare use case
 12. **RandomChoice** - Less common pattern
 13. **LinearTransformation** - Specialized use case
-14. **Scale** & **RandomSizedCrop** - Deprecated
+14. ~~**Scale** & **RandomSizedCrop** - Deprecated~~ ✅ COMPLETED (Scale done)
 
 ## Testing Approach
 

@@ -176,7 +176,7 @@ def pad(img, padding, fill=0, padding_mode="constant"):
         raise TypeError("Got inappropriate fill arg")
     if not isinstance(padding_mode, str):
         raise TypeError("Got inappropriate padding_mode arg")
-    if isinstance(padding, collections.Sequence) and len(padding) not in [2, 4]:
+    if isinstance(padding, collections.abc.Sequence) and len(padding) not in [2, 4]:
         raise ValueError(
             "Padding must be an int or a 2, or 4 element tuple, not a "
             + f"{len(padding)} element tuple"
@@ -188,10 +188,10 @@ def pad(img, padding, fill=0, padding_mode="constant"):
 
     if isinstance(padding, int):
         pad_left = pad_right = pad_top = pad_bottom = padding
-    if isinstance(padding, collections.Sequence) and len(padding) == 2:
+    if isinstance(padding, collections.abc.Sequence) and len(padding) == 2:
         pad_left = pad_right = padding[0]
         pad_top = pad_bottom = padding[1]
-    if isinstance(padding, collections.Sequence) and len(padding) == 4:
+    if isinstance(padding, collections.abc.Sequence) and len(padding) == 4:
         pad_left = padding[0]
         pad_top = padding[1]
         pad_right = padding[2]
