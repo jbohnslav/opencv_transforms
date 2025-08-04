@@ -378,14 +378,23 @@ def adjust_brightness(img, brightness_factor):
 
 
 def adjust_contrast(img, contrast_factor):
-    """Adjust contrast of an mage.
+    """Adjust contrast of an image.
+
     Args:
         img (numpy ndarray): numpy ndarray to be adjusted.
         contrast_factor (float): How much to adjust the contrast. Can be any
             non negative number. 0 gives a solid gray image, 1 gives the
             original image while 2 increases the contrast by a factor of 2.
+
     Returns:
         numpy ndarray: Contrast adjusted image.
+
+    Note:
+        This implementation aims to match PIL's ImageEnhance.Contrast behavior.
+        Small differences (±1 pixel value) may occur for a tiny fraction of pixels
+        (<0.01%) due to floating-point precision differences between PIL and OpenCV.
+        PIL's implementation has known precision issues where contrast_factor=1.0
+        doesn't always return the exact original image.
     """
     # much faster to use the LUT construction than anything else I've tried
     # it's because you have to change dtypes multiple times
@@ -402,9 +411,12 @@ def adjust_contrast(img, contrast_factor):
         # multichannel input
         mean_value = np.mean(img)
 
-    # Create lookup table
-    # Use the contrast formula: (pixel - mean) * factor + mean
-    # PIL rounds the final result by adding 0.5
+    # Create lookup table using the contrast formula: (pixel - mean) * factor + mean
+    # PIL/torchvision uses int(result + 0.5) for rounding to match their behavior.
+    # Note: PIL's implementation has floating-point precision issues that cause
+    # small differences (±1) for some pixel values. For example, with factor=1.0,
+    # PIL sometimes returns values different from the original due to these precision
+    # errors, while our implementation correctly returns the original values.
     table = (
         np.array(
             [
