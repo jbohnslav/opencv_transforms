@@ -5,6 +5,8 @@ import random
 import types
 import warnings
 
+import torch
+
 # from PIL import Image, ImageOps, ImageEnhance
 try:
     import accimage
@@ -12,7 +14,6 @@ except ImportError:
     accimage = None
 import cv2
 import numpy as np
-import torch
 
 from . import functional as F
 
@@ -321,7 +322,7 @@ class RandomApply(RandomTransforms):
         self.p = p
 
     def __call__(self, img):
-        if self.p < random.random():
+        if torch.rand(1).item() >= self.p:
             return img
         for t in self.transforms:
             img = t(img)

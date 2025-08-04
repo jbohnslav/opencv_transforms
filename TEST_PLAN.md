@@ -129,7 +129,7 @@ The following transforms lack dedicated unit tests:
 
 ### Random Transforms
 8. ~~**Lambda** (opencv_transforms/transforms.py:273) - No tests for lambda transforms~~ ✅ **COMPLETED**
-9. **RandomApply** (opencv_transforms/transforms.py:312) - No tests for random application
+9. ~~**RandomApply** (opencv_transforms/transforms.py:312) - No tests for random application~~ ✅ **COMPLETED**
 10. **RandomOrder** (opencv_transforms/transforms.py:340) - No tests for random ordering
 11. **RandomChoice** (opencv_transforms/transforms.py:351) - No tests for random choice
 12. **RandomSizedCrop** (opencv_transforms/transforms.py:573) - Deprecated, but no test coverage
@@ -172,7 +172,7 @@ Note: `adjust_gamma` (functional.py:483) has a test but not through the transfor
 6. ~~**TenCrop** - Used in evaluation pipelines~~ ✅ **COMPLETED**
 7. ~~**ColorJitter** (complete) - Important augmentation~~ ✅ **COMPLETED**
 8. **RandomGrayscale** - Common augmentation
-9. **RandomApply** - Useful for conditional augmentation
+9. ~~**RandomApply** - Useful for conditional augmentation~~ ✅ **COMPLETED**
 
 ### Low Priority (Less common/deprecated)
 10. ~~**Lambda** - Edge case usage~~ ✅ **COMPLETED**
