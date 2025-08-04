@@ -23,3 +23,5 @@ coverage.xml
 # Debug files
 /debug/
 debug_*.py
+
+tests/.cache/
