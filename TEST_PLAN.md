@@ -128,7 +128,7 @@ The following transforms lack dedicated unit tests:
 7. **RandomAffine** (opencv_transforms/transforms.py:894) - No tests for affine transformations
 
 ### Random Transforms
-8. **Lambda** (opencv_transforms/transforms.py:273) - No tests for lambda transforms
+8. ~~**Lambda** (opencv_transforms/transforms.py:273) - No tests for lambda transforms~~ ✅ **COMPLETED**
 9. ~~**RandomApply** (opencv_transforms/transforms.py:312) - No tests for random application~~ ✅ **COMPLETED**
 10. **RandomOrder** (opencv_transforms/transforms.py:340) - No tests for random ordering
 11. **RandomChoice** (opencv_transforms/transforms.py:351) - No tests for random choice
@@ -175,7 +175,7 @@ Note: `adjust_gamma` (functional.py:483) has a test but not through the transfor
 9. ~~**RandomApply** - Useful for conditional augmentation~~ ✅ **COMPLETED**
 
 ### Low Priority (Less common/deprecated)
-10. **Lambda** - Edge case usage
+10. ~~**Lambda** - Edge case usage~~ ✅ **COMPLETED**
 11. **RandomOrder** - Rare use case
 12. **RandomChoice** - Less common pattern
 13. ~~**LinearTransformation** - Specialized use case~~ ✅ **COMPLETED**
