@@ -52,9 +52,11 @@ class TestSpatialTransforms:
         # Ensure image is large enough for cropping
         min_size = crop_size + 50 if isinstance(crop_size, int) else max(crop_size) + 50
 
-        # Resize to ensure crop will work
+        # Resize to ensure crop will work - use PIL resize for both to ensure identical input
         pil_image = pil_transforms.Resize((min_size, min_size))(pil_image)
-        cv_image = transforms.Resize((min_size, min_size))(cv_image)
+        cv_image = np.array(
+            pil_image
+        )  # Convert PIL result to numpy for OpenCV transforms
 
         pil_crops = pil_transforms.FiveCrop(crop_size)(pil_image)
         cv_crops = transforms.FiveCrop(crop_size)(cv_image)
@@ -73,12 +75,14 @@ class TestSpatialTransforms:
         """Test center crop transformation."""
         pil_image, cv_image = single_test_image
 
-        # Ensure image is large enough
+        # Ensure image is large enough - use PIL resize for both to ensure identical input
         min_size = (
             (crop_size + 50) if isinstance(crop_size, int) else (max(crop_size) + 50)
         )
         pil_image = pil_transforms.Resize((min_size, min_size))(pil_image)
-        cv_image = transforms.Resize((min_size, min_size))(cv_image)
+        cv_image = np.array(
+            pil_image
+        )  # Convert PIL result to numpy for OpenCV transforms
 
         pil_cropped = pil_transforms.CenterCrop(crop_size)(pil_image)
         cv_cropped = transforms.CenterCrop(crop_size)(cv_image)
@@ -105,12 +109,14 @@ class TestSpatialTransforms:
         random.seed(42)
         cv_cropped = transforms.RandomCrop(crop_size)(cv_image)
 
-        # Check output dimensions
-        expected_size = (
-            (crop_size, crop_size) if isinstance(crop_size, int) else crop_size
-        )
-        assert np.array(pil_cropped).shape[:2] == expected_size
-        assert cv_cropped.shape[:2] == expected_size
+        # Check output shapes match expected
+        if isinstance(crop_size, int):
+            expected_shape = (crop_size, crop_size)
+        else:
+            expected_shape = crop_size
+
+        assert np.array(pil_cropped).shape[:2] == expected_shape
+        assert cv_cropped.shape[:2] == expected_shape
 
     def test_horizontal_flip(self, single_test_image):
         """Test horizontal flip transformation."""
@@ -138,14 +144,15 @@ class TestSpatialTransforms:
         """Test random resized crop transformation."""
         pil_image, cv_image = single_test_image
 
-        # Use same seed for comparison
+        # Use same seed for deterministic comparison
         random.seed(42)
         pil_transformed = pil_transforms.RandomResizedCrop(size, scale=scale)(pil_image)
 
         random.seed(42)
         cv_transformed = transforms.RandomResizedCrop(size, scale=scale)(cv_image)
 
-        # Check output dimensions
-        expected_size = (size, size) if isinstance(size, int) else size
-        assert np.array(pil_transformed).shape[:2] == expected_size
-        assert cv_transformed.shape[:2] == expected_size
+        # Check output shapes match expected
+        expected_shape = (size, size) if isinstance(size, int) else size
+
+        assert np.array(pil_transformed).shape[:2] == expected_shape
+        assert cv_transformed.shape[:2] == expected_shape
