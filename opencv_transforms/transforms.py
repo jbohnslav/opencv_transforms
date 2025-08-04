@@ -513,7 +513,10 @@ class RandomResizedCrop:
         ratio=(3.0 / 4.0, 4.0 / 3.0),
         interpolation=cv2.INTER_LINEAR,
     ):
-        self.size = (size, size)
+        if isinstance(size, int):
+            self.size = (size, size)
+        else:
+            self.size = size
         self.interpolation = interpolation
         self.scale = scale
         self.ratio = ratio

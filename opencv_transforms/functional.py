@@ -97,7 +97,7 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
             the aspect ratio. i.e, if height > width, then image will be rescaled to
             :math:`\left(\text{size} \times \frac{\text{height}}{\text{width}}, \text{size}\right)`
         interpolation (int, optional): Desired interpolation. Default is
-            ``cv2.INTER_LINEAR``
+            ``cv2.INTER_LINEAR``. If None, will automatically choose best method.
     Returns:
         PIL Image: Resized image.
     """
@@ -121,6 +121,13 @@ def resize(img, size, interpolation=cv2.INTER_LINEAR):
             ow = int(size * w / h)
     else:
         ow, oh = size[1], size[0]
+
+    # Auto-select interpolation if not specified or use better default
+    if interpolation is None or interpolation == cv2.INTER_LINEAR:
+        # Use INTER_AREA for downsampling (better quality, closer to PIL)
+        # Use INTER_LINEAR for upsampling
+        interpolation = cv2.INTER_AREA if ow * oh < w * h else cv2.INTER_LINEAR
+
     output = cv2.resize(img, dsize=(ow, oh), interpolation=interpolation)
     if img.shape[2] == 1:
         return output[:, :, np.newaxis]
