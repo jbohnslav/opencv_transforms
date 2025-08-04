@@ -19,3 +19,7 @@ htmlcov/
 .pytest_cache/
 coverage.xml
 *.coverage
+
+# Debug files
+
+tests/.cache/

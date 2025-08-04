@@ -1,0 +1,3 @@
+# Relax rules for debug scripts
+[lint]
+ignore = ["E402", "F401", "F403", "W293", "PLC0415"]
