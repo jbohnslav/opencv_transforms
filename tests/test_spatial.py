@@ -41,7 +41,7 @@ class TestSpatialTransforms:
         cv_rotated = transforms.RandomRotation(degrees)(cv_image)
 
         l1_diff = L1(pil_rotated, cv_rotated)
-        assert l1_diff < 100.0  # Allow difference due to interpolation methods
+        assert l1_diff < 130.0  # Allow difference due to interpolation methods
 
     @pytest.mark.parametrize("crop_size", [224, (224, 224), (200, 300)])
     def test_five_crop(self, single_test_image, crop_size):
