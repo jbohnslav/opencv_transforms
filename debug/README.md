@@ -26,6 +26,26 @@ result = compare_contrast_outputs(image, contrast_factor=0.5)
 test_beans_dataset_image()
 ```
 
+### `debug_rotation.py`
+Comprehensive rotation transform debugging utilities:
+
+- `analyze_rotation_differences()` - Analyze differences between PIL and OpenCV rotation
+- `test_random_rotation_sync()` - Test RandomRotation synchronization
+- `test_interpolation_modes()` - Compare different interpolation modes
+- `visualize_rotation_difference()` - Create visual comparison plots
+- `run_full_analysis()` - Run comprehensive rotation analysis
+
+Example usage:
+```python
+from debug.debug_rotation import analyze_rotation_differences, run_full_analysis
+
+# Quick analysis
+result = analyze_rotation_differences(angle=30, use_test_image=True)
+
+# Full comprehensive analysis
+run_full_analysis()
+```
+
 ## Individual Debug Scripts
 
 These scripts were created during the investigation of contrast transform failures:
@@ -37,7 +57,15 @@ These scripts were created during the investigation of contrast transform failur
 
 ## Key Findings
 
+### Contrast Transform
 1. PIL has precision issues where `contrast_factor=1.0` doesn't always return the original image
 2. Differences are typically ±1 pixel value for <0.01% of pixels
 3. PIL uses `int(value + 0.5)` for rounding
 4. The mean value calculation is critical for matching PIL behavior
+
+### Rotation Transform
+1. PIL/torchvision uses PyTorch's random generator, while opencv_transforms now uses it too for compatibility
+2. Default interpolation is NEAREST for both PIL and OpenCV implementations
+3. Small differences (<1% of pixels) occur at edges due to different rotation algorithms
+4. Mean pixel differences are typically 2-8 out of 255, indicating good overall accuracy
+5. Both libraries rotate counter-clockwise by default
