@@ -74,12 +74,14 @@ class TestSpatialTransforms:
         """Test center crop transformation."""
         pil_image, cv_image = single_test_image
 
-        # Ensure image is large enough
+        # Ensure image is large enough - use PIL resize for both to ensure identical input
         min_size = (
             (crop_size + 50) if isinstance(crop_size, int) else (max(crop_size) + 50)
         )
         pil_image = pil_transforms.Resize((min_size, min_size))(pil_image)
-        cv_image = transforms.Resize((min_size, min_size))(cv_image)
+        cv_image = np.array(
+            pil_image
+        )  # Convert PIL result to numpy for OpenCV transforms
 
         pil_cropped = pil_transforms.CenterCrop(crop_size)(pil_image)
         cv_cropped = transforms.CenterCrop(crop_size)(cv_image)
