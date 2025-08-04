@@ -122,8 +122,8 @@ The following transforms lack dedicated unit tests:
 ### Random Transforms
 8. ~~**Lambda** (opencv_transforms/transforms.py:273) - No tests for lambda transforms~~ ✅ **COMPLETED**
 9. ~~**RandomApply** (opencv_transforms/transforms.py:312) - No tests for random application~~ ✅ **COMPLETED**
-10. **RandomOrder** (opencv_transforms/transforms.py:340) - No tests for random ordering
-11. **RandomChoice** (opencv_transforms/transforms.py:351) - No tests for random choice
+10. ~~**RandomOrder** (opencv_transforms/transforms.py:340) - No tests for random ordering~~ ✅ **COMPLETED**
+11. ~~**RandomChoice** (opencv_transforms/transforms.py:351) - No tests for random choice~~ ✅ **COMPLETED**
 12. **RandomSizedCrop** (opencv_transforms/transforms.py:573) - Deprecated, but no test coverage
 
 ### Advanced Transforms
@@ -137,7 +137,7 @@ The following transforms lack dedicated unit tests:
     - Hue adjustment failing
     - Combined color jittering causing overflow errors
     - Parameter validation not working for hue
-15. **RandomGrayscale** (opencv_transforms/transforms.py:1068) - No tests for random grayscale
+15. ~~**RandomGrayscale** (opencv_transforms/transforms.py:1068) - No tests for random grayscale~~ ✅ **COMPLETED**
 
 ## Functional Methods Without Direct Tests
 
@@ -167,13 +167,13 @@ Note: `adjust_gamma` (functional.py:483) has a test but not through the transfor
 ### Medium Priority (Common use cases)
 6. ~~**TenCrop** - Used in evaluation pipelines~~ ✅ **COMPLETED**
 7. **ColorJitter** - Important augmentation (currently failing all tests)
-8. **RandomGrayscale** - Common augmentation
+8. ~~**RandomGrayscale** - Common augmentation~~ ✅ **COMPLETED**
 9. ~~**RandomApply** - Useful for conditional augmentation~~ ✅ **COMPLETED**
 
 ### Low Priority (Less common/deprecated)
 10. ~~**Lambda** - Edge case usage~~ ✅ **COMPLETED**
-11. **RandomOrder** - Rare use case
-12. **RandomChoice** - Less common pattern
+11. ~~**RandomOrder** - Rare use case~~ ✅ **COMPLETED**
+12. ~~**RandomChoice** - Less common pattern~~ ✅ **COMPLETED**
 13. ~~**LinearTransformation** - Specialized use case~~ ✅ **COMPLETED**
 14. ~~**Scale** & **RandomSizedCrop** - Deprecated~~ ✅ COMPLETED (Scale done)
 
