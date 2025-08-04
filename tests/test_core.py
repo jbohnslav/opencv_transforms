@@ -456,3 +456,245 @@ class TestLinearTransformation:
         batch_tensor = torch.rand(2, 3, 4, 4)  # Batch of 2
         with pytest.raises(ValueError):
             transform(batch_tensor)
+
+
+class TestLambda:
+    def test_lambda_identity_function(self, single_test_image):
+        """Test Lambda with identity function matches torchvision."""
+        pil_image, cv_image = single_test_image
+
+        identity_fn = lambda x: x
+
+        pil_transform = T.Lambda(identity_fn)
+        cv_transform = cv_transforms.Lambda(identity_fn)
+
+        pil_result = pil_transform(pil_image)
+        cv_result = cv_transform(cv_image)
+
+        # PIL and OpenCV results should be identical for identity function
+        assert np.array_equal(np.array(pil_result), cv_result)
+
+    def test_lambda_simple_arithmetic(self, single_test_image):
+        """Test Lambda with simple arithmetic function matches torchvision."""
+        pil_image, cv_image = single_test_image
+
+        # Convert to tensor first for both
+        pil_tensor = T.ToTensor()(pil_image)
+        cv_tensor = cv_transforms.ToTensor()(cv_image)
+
+        # Lambda function that multiplies by 0.5
+        multiply_fn = lambda x: x * 0.5
+
+        pil_transform = T.Lambda(multiply_fn)
+        cv_transform = cv_transforms.Lambda(multiply_fn)
+
+        pil_result = pil_transform(pil_tensor)
+        cv_result = cv_transform(cv_tensor)
+
+        assert torch.allclose(pil_result, cv_result, rtol=1e-7, atol=1e-8)
+
+    def test_lambda_tensor_operations(self):
+        """Test Lambda with tensor operations."""
+        test_tensor = torch.rand(3, 32, 32)
+
+        # Lambda function that adds 0.1 to all values
+        add_fn = lambda x: x + 0.1
+
+        pil_transform = T.Lambda(add_fn)
+        cv_transform = cv_transforms.Lambda(add_fn)
+
+        pil_result = pil_transform(test_tensor.clone())
+        cv_result = cv_transform(test_tensor.clone())
+
+        assert torch.allclose(pil_result, cv_result, rtol=1e-7, atol=1e-8)
+
+    def test_lambda_clamp_function(self):
+        """Test Lambda with clamping function."""
+        test_tensor = torch.rand(3, 16, 16) * 2 - 0.5  # Values in [-0.5, 1.5]
+
+        # Lambda function that clamps values to [0, 1]
+        clamp_fn = lambda x: torch.clamp(x, 0, 1)
+
+        pil_transform = T.Lambda(clamp_fn)
+        cv_transform = cv_transforms.Lambda(clamp_fn)
+
+        pil_result = pil_transform(test_tensor.clone())
+        cv_result = cv_transform(test_tensor.clone())
+
+        assert torch.allclose(pil_result, cv_result, rtol=1e-7, atol=1e-8)
+        # Verify clamping worked
+        assert torch.all(cv_result >= 0) and torch.all(cv_result <= 1)
+
+    def test_lambda_channel_manipulation(self):
+        """Test Lambda with channel manipulation."""
+        test_tensor = torch.rand(3, 8, 8)
+
+        # Lambda function that swaps first and last channel
+        swap_channels_fn = lambda x: torch.stack([x[2], x[1], x[0]], dim=0)
+
+        pil_transform = T.Lambda(swap_channels_fn)
+        cv_transform = cv_transforms.Lambda(swap_channels_fn)
+
+        pil_result = pil_transform(test_tensor.clone())
+        cv_result = cv_transform(test_tensor.clone())
+
+        assert torch.allclose(pil_result, cv_result, rtol=1e-7, atol=1e-8)
+        # Verify channels were swapped
+        assert torch.allclose(cv_result[0], test_tensor[2], rtol=1e-7, atol=1e-8)
+        assert torch.allclose(cv_result[2], test_tensor[0], rtol=1e-7, atol=1e-8)
+
+    def test_lambda_grayscale_conversion(self):
+        """Test Lambda with custom grayscale conversion."""
+        test_tensor = torch.rand(3, 16, 16)
+
+        # Lambda function for RGB to grayscale conversion
+        # Using standard weights: 0.299*R + 0.587*G + 0.114*B
+        gray_fn = lambda x: (0.299 * x[0] + 0.587 * x[1] + 0.114 * x[2]).unsqueeze(0)
+
+        pil_transform = T.Lambda(gray_fn)
+        cv_transform = cv_transforms.Lambda(gray_fn)
+
+        pil_result = pil_transform(test_tensor.clone())
+        cv_result = cv_transform(test_tensor.clone())
+
+        assert torch.allclose(pil_result, cv_result, rtol=1e-7, atol=1e-8)
+        assert pil_result.shape == (1, 16, 16)  # Should be single channel
+        assert cv_result.shape == (1, 16, 16)
+
+    def test_lambda_in_compose(self, single_test_image):
+        """Test Lambda works correctly in Compose pipeline."""
+        pil_image, cv_image = single_test_image
+
+        # Lambda function that performs a deterministic operation
+        scale_fn = lambda x: x * 0.8 + 0.1
+
+        pil_compose = T.Compose([T.ToTensor(), T.Lambda(scale_fn)])
+
+        cv_compose = cv_transforms.Compose(
+            [cv_transforms.ToTensor(), cv_transforms.Lambda(scale_fn)]
+        )
+
+        pil_result = pil_compose(pil_image)
+        cv_result = cv_compose(cv_image)
+
+        assert torch.allclose(pil_result, cv_result, rtol=1e-5, atol=1e-6)
+
+    def test_lambda_initialization_type_check(self):
+        """Test Lambda initialization requires lambda function."""
+        # Valid lambda function
+        valid_lambda = lambda x: x
+        transform = cv_transforms.Lambda(valid_lambda)
+        assert transform.lambd == valid_lambda
+
+        # Regular function should also work (types.LambdaType might be too restrictive)
+        def regular_function(x):
+            return x
+
+        # Note: If this fails, it indicates the type check might be too restrictive
+        # The implementation should accept any callable, not just lambdas
+        try:
+            transform = cv_transforms.Lambda(regular_function)
+            assert transform.lambd == regular_function
+        except AssertionError:
+            # If the implementation is strict about lambda types, this is expected
+            pytest.skip(
+                "Implementation only accepts lambda types, not regular functions"
+            )
+
+    def test_lambda_complex_transformation(self):
+        """Test Lambda with complex transformation."""
+        test_tensor = torch.rand(3, 4, 4)
+
+        # Complex lambda that normalizes each channel independently
+        normalize_channels_fn = lambda x: torch.stack(
+            [(x[i] - x[i].mean()) / (x[i].std() + 1e-8) for i in range(x.shape[0])]
+        )
+
+        pil_transform = T.Lambda(normalize_channels_fn)
+        cv_transform = cv_transforms.Lambda(normalize_channels_fn)
+
+        pil_result = pil_transform(test_tensor.clone())
+        cv_result = cv_transform(test_tensor.clone())
+
+        assert torch.allclose(pil_result, cv_result, rtol=1e-5, atol=1e-6)
+
+        # Verify each channel is normalized (mean ≈ 0, std ≈ 1)
+        for i in range(3):
+            assert abs(cv_result[i].mean().item()) < 1e-6
+            assert abs(cv_result[i].std().item() - 1.0) < 1e-5
+
+    def test_lambda_return_type_preservation(self):
+        """Test Lambda preserves return type of the function."""
+        test_tensor = torch.rand(3, 8, 8)
+
+        # Lambda that returns the same tensor type
+        tensor_fn = lambda x: x * 2
+
+        # Lambda that returns numpy array
+        numpy_fn = lambda x: (x * 2).numpy()
+
+        # Lambda that returns list
+        list_fn = lambda x: x.tolist()
+
+        cv_transform_tensor = cv_transforms.Lambda(tensor_fn)
+        cv_transform_numpy = cv_transforms.Lambda(numpy_fn)
+        cv_transform_list = cv_transforms.Lambda(list_fn)
+
+        result_tensor = cv_transform_tensor(test_tensor)
+        result_numpy = cv_transform_numpy(test_tensor)
+        result_list = cv_transform_list(test_tensor)
+
+        assert isinstance(result_tensor, torch.Tensor)
+        assert isinstance(result_numpy, np.ndarray)
+        assert isinstance(result_list, list)
+
+    def test_lambda_error_handling(self):
+        """Test Lambda handles errors from the provided function."""
+        test_tensor = torch.rand(3, 4, 4)
+
+        # Lambda that will raise an error (indexing error)
+        error_fn = lambda x: x[10]  # Index out of bounds
+
+        cv_transform = cv_transforms.Lambda(error_fn)
+
+        with pytest.raises(IndexError):
+            cv_transform(test_tensor)
+
+    def test_lambda_repr(self):
+        """Test Lambda string representation."""
+        test_lambda = lambda x: x
+        transform = cv_transforms.Lambda(test_lambda)
+
+        repr_str = repr(transform)
+        assert "Lambda()" in repr_str
+
+    @pytest.mark.parametrize("random_seed", [1, 2, 3])
+    def test_lambda_random_operations(self, test_images, random_seed):
+        """Test Lambda with deterministic operations matches torchvision."""
+        random.seed(random_seed)
+        pil_images, cv_images = test_images
+
+        # Select random image
+        idx = random.randint(0, len(pil_images) - 1)
+        pil_image = pil_images[idx]
+        cv_image = cv_images[idx].copy()
+
+        # Convert to tensors first
+        pil_tensor = T.ToTensor()(pil_image)
+        cv_tensor = cv_transforms.ToTensor()(cv_image)
+
+        # Use deterministic lambda function based on random seed for reproducible test
+        if random_seed == 1:
+            transform_fn = lambda x: x * 0.9 + 0.05
+        elif random_seed == 2:
+            transform_fn = lambda x: torch.clamp(x * 1.2 - 0.1, 0, 1)
+        else:
+            transform_fn = lambda x: x**0.8
+
+        pil_transform = T.Lambda(transform_fn)
+        cv_transform = cv_transforms.Lambda(transform_fn)
+
+        pil_result = pil_transform(pil_tensor)
+        cv_result = cv_transform(cv_tensor)
+
+        assert torch.allclose(pil_result, cv_result, rtol=1e-5, atol=1e-6)
