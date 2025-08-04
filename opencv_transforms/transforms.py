@@ -1007,15 +1007,8 @@ class RandomAffine:
             self.shear,
             (img.shape[1], img.shape[0]),
         )
-<<<<<<< HEAD
-        angle, translations, scale, shear = ret
-        return F.affine(
-            img, angle, translations, scale, shear,
-            interpolation=self.interpolation, fillcolor=self.fillcolor
-=======
         return F.affine(
             img, *ret, interpolation=self.interpolation, fillcolor=self.fillcolor
->>>>>>> origin/master
         )
 
     def __repr__(self):
@@ -1026,13 +1019,13 @@ class RandomAffine:
             s += ", scale={scale}"
         if self.shear is not None:
             s += ", shear={shear}"
-        if self.resample > 0:
-            s += ", resample={resample}"
+        if self.interpolation != cv2.INTER_LINEAR:
+            s += ", interpolation={interpolation}"
         if self.fillcolor != 0:
             s += ", fillcolor={fillcolor}"
         s += ")"
         d = dict(self.__dict__)
-        d["resample"] = _cv2_interpolation_to_str[d["resample"]]
+        d["interpolation"] = _cv2_interpolation_from_str[d["interpolation"]]
         return s.format(name=self.__class__.__name__, **d)
 
 

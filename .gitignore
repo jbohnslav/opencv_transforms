@@ -9,3 +9,13 @@ __pycache__/
 tests/testing_directory.txt
 .idea
 uv.lock
+
+# Coverage files
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+.hypothesis/
+.pytest_cache/
+coverage.xml
+*.coverage
