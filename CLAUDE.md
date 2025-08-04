@@ -64,6 +64,24 @@ def some_transform(img, param):
 
 - `opencv_transforms/` - Main package code
 - `tests/` - Unit tests
+- `debug/` - Debug utilities for investigating PIL/OpenCV differences
+  - `debug_utils.py` - Consolidated debugging functions
+  - Various investigation scripts from debugging sessions
 - `TEST_PLAN.md` - Documentation of missing tests
 - `UPDATE.md` - Documentation of missing transforms compared to torchvision
-- `debug/` - Gitignored directory for temporary debugging scripts
+
+## Debugging Transform Differences
+
+Use the debug utilities when investigating transform differences:
+
+```python
+from debug.debug_utils import compare_contrast_outputs, test_beans_dataset_image
+
+# Debug specific transform
+result = compare_contrast_outputs(image, contrast_factor=0.5)
+
+# Test with the actual test fixture image
+test_beans_dataset_image()
+```
+
+See `debug/README.md` for documentation on available debugging tools.
