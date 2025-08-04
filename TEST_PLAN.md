@@ -1,25 +1,27 @@
 # Test Coverage Analysis for opencv_transforms
 
-## Current Test Failures (17 failed, 181 passed, 9 skipped)
+## Current Test Failures (11 failed, 187 passed, 9 skipped)
 
 **Recent Fixes**: 
 - ✅ Fixed 3 rotation transform failures through random seed synchronization and interpolation method corrections.
 - ✅ Fixed 4 contrast test failures through PIL precision matching and tolerance-based testing.
+- ✅ Fixed test_hue_complementary by correcting test assertion to match PIL's behavior
+- ✅ Fixed 4 ColorJitter individual parameter tests (brightness, contrast, saturation, hue)
+- ✅ Fixed hue adjustment overflow error for negative values
 
-### Color Transform Failures (14):
-- `test_hue_complementary` - assert False
-- `test_colorjitter_individual[brightness-0.2]` - assert False
-- `test_colorjitter_individual[contrast-0.3]` - assert False
-- `test_colorjitter_individual[saturation-0.4]` - assert False
-- `test_colorjitter_individual[hue-0.1]` - assert False
-- `test_colorjitter_combined[1]` - OverflowError: Python integer -12 out of bounds for uint8
-- `test_colorjitter_combined[2]` - OverflowError: Python integer -21 out of bounds for uint8
-- `test_colorjitter_combined[3]` - assert False
+### Color Transform Failures (8):
+- ~~`test_hue_complementary` - assert False~~ ✅ **FIXED**
+- ~~`test_colorjitter_individual[brightness-0.2]` - assert False~~ ✅ **FIXED**
+- ~~`test_colorjitter_individual[contrast-0.3]` - assert False~~ ✅ **FIXED**
+- ~~`test_colorjitter_individual[saturation-0.4]` - assert False~~ ✅ **FIXED**
+- ~~`test_colorjitter_individual[hue-0.1]` - assert False~~ ✅ **FIXED**
+- `test_colorjitter_combined[1]` - assert False (max diff: 8 pixels)
+- `test_colorjitter_combined[2]` - assert False (max diff: 7 pixels)
+- `test_colorjitter_combined[3]` - assert False (after reverting tolerance)
 - `test_colorjitter_tuple_params[brightness-param_value0]` - assert False
 - `test_colorjitter_tuple_params[contrast-param_value1]` - assert False
 - `test_colorjitter_tuple_params[saturation-param_value2]` - assert False
 - `test_colorjitter_tuple_params[hue-param_value3]` - assert False
-- `test_colorjitter_random_order` - OverflowError: Python integer -24 out of bounds for uint8
 - `test_colorjitter_parameter_validation[hue-0.6-ValueError]` - Failed: DID NOT RAISE <class 'ValueError'>
 
 ### Spatial Transform Failures (3):
@@ -28,27 +30,28 @@
 - `test_rotation[45]` - AssertionError: Transform outputs differ too much (torch.allclose)
 
 **Main Issues**: 
-1. **ColorJitter failures**: The ColorJitter tests are failing due to implementation issues with individual color adjustments (brightness, contrast, saturation, hue) and overflow errors when combining multiple adjustments. The hue parameter validation is also not working correctly.
-2. **Rotation failures**: Despite previous fixes, rotation tests are still failing with torch.allclose assertion errors, indicating the transforms don't match PyTorch closely enough.
+1. **ColorJitter combined/tuple failures**: When combining multiple color adjustments or using tuple parameters, the LUT-based brightness adjustment accumulates differences with other transforms
+2. **Rotation failures**: Despite previous fixes, rotation tests are still failing with torch.allclose assertion errors
+3. **Hue parameter validation**: Not properly enforcing the [-0.5, 0.5] range
 
 ## Critical Implementation Differences
 
-### ColorJitter Implementation Issues
-**Issue**: The ColorJitter transform is failing across all test scenarios:
-1. Individual color adjustments (brightness, contrast, saturation, hue) are not matching PyTorch
-2. Combined adjustments are causing integer overflow errors (negative values for uint8)
-3. Hue parameter validation is not properly enforcing the [-0.5, 0.5] range
+### ColorJitter Implementation Status
+**Fixed Issues**:
+1. ✅ Random number generation now matches torchvision exactly
+2. ✅ Fixed hue overflow error for negative values
+3. ✅ Individual parameter tests pass with proper seed synchronization
 
-**Impact**: 
-- All ColorJitter tests failing (14 out of 17 total failures)
-- OverflowError when combining multiple color adjustments
-- Missing parameter validation for hue values
+**Remaining Issues**:
+1. **LUT-based brightness** differs from PIL's ImageEnhance.Brightness by small amounts
+2. **Combined transforms** accumulate differences (7-8 pixels max)
+3. **Tuple parameters** likely have similar RNG synchronization issues
+4. **Hue validation** in ColorJitter constructor doesn't match torchvision
 
-**Solution Required**: 
-1. Review and fix individual color adjustment functions to match PyTorch behavior
-2. Ensure proper clipping/saturation to prevent overflow errors
-3. Add proper parameter validation for hue values (should raise ValueError for |hue| > 0.5)
-4. Test with fixed random seeds to ensure reproducibility
+**Key Findings**:
+- The LUT approach `[i * brightness_factor for i in range(256)]` produces slightly different results than PIL
+- Tests need seeds reset before each transform application, not just creation
+- Torchvision uses `torch.randperm(4)` first, then generates factors with `torch.empty(1).uniform_()`
 
 ### Rotation Transform Precision Issues (Recurring)
 **Issue**: Rotation tests are still failing despite previous fixes. The transforms don't match PyTorch closely enough to pass torch.allclose assertions.
@@ -70,13 +73,13 @@ This document provides a comprehensive analysis of the test coverage for transfo
 Name                              Stmts   Miss   Cover   Missing
 ----------------------------------------------------------------
 opencv_transforms/__init__.py         0      0 100.00%
-opencv_transforms/functional.py     223    114  48.88%
-opencv_transforms/transforms.py     419    231  44.87%
+opencv_transforms/functional.py     231     63  72.73%
+opencv_transforms/transforms.py     439    145  66.97%
 ----------------------------------------------------------------
-TOTAL                               642    345  46.26%
+TOTAL                               670    208  68.96%
 ```
 
-**Overall coverage: 46.26%** - More than half of the codebase lacks test coverage.
+**Overall coverage: 68.96%** - Significant improvement from 46.26%, approaching 70% coverage.
 
 ## Testing Philosophy
 

@@ -344,6 +344,7 @@ class TestColorJitter:
         # Set fixed seed for reproducibility
         random.seed(random_seed)
         np.random.seed(random_seed)
+        torch.manual_seed(random_seed)
 
         # Create ColorJitter with all parameters
         pil_transform = pil_transforms.ColorJitter(
@@ -356,7 +357,15 @@ class TestColorJitter:
         # Apply transforms
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
+            # Reset seeds before applying each transform so they use the same random values
+            random.seed(random_seed)
+            np.random.seed(random_seed)
+            torch.manual_seed(random_seed)
             pil_result = pil_transform(pil_image)
+
+            random.seed(random_seed)
+            np.random.seed(random_seed)
+            torch.manual_seed(random_seed)
             cv_result = cv_transform(image)
 
         # Results should match

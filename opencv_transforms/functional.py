@@ -371,12 +371,17 @@ def adjust_brightness(img, brightness_factor):
     """
     if not _is_numpy_image(img):
         raise TypeError(f"img should be numpy Image. Got {type(img)}")
-
-    # Use PIL for exact compatibility
-    img_pil = Image.fromarray(img)
-    enhancer = ImageEnhance.Brightness(img_pil)
-    img_pil = enhancer.enhance(brightness_factor)
-    return np.array(img_pil)
+    table = (
+        np.array([i * brightness_factor for i in range(0, 256)])
+        .clip(0, 255)
+        .astype("uint8")
+    )
+    # same thing but a bit slower
+    # cv2.convertScaleAbs(img, alpha=brightness_factor, beta=0)
+    if img.shape[2] == 1:
+        return cv2.LUT(img, table)[:, :, np.newaxis]
+    else:
+        return cv2.LUT(img, table)
 
 
 def adjust_contrast(img, contrast_factor):
@@ -509,7 +514,9 @@ def adjust_hue(img, hue_factor):
     np_h = np.array(h, dtype=np.uint8)
     # uint8 addition take cares of rotation across boundaries
     with np.errstate(over="ignore"):
-        np_h += np.uint8(hue_factor * 255)
+        # Convert to int first to handle negative values, then let numpy handle the wrap-around
+        np_h = np_h.astype(np.int16) + int(hue_factor * 255)
+        np_h = np_h.astype(np.uint8)
     h = Image.fromarray(np_h, "L")
 
     img = Image.merge("HSV", (h, s, v)).convert(input_mode)
