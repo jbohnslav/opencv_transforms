@@ -3,6 +3,7 @@ import warnings
 
 import numpy as np
 import pytest
+import torch
 from conftest import TRANSFORM_TOLERANCES
 from torchvision import transforms as pil_transforms
 from utils import assert_transforms_close
@@ -35,9 +36,12 @@ class TestSpatialTransforms:
         pil_image, cv_image = single_test_image
 
         # Use fixed seed for deterministic results
+        # Both torchvision and opencv_transforms now use torch random for compatibility
+        torch.manual_seed(42)
         random.seed(42)
         pil_rotated = pil_transforms.RandomRotation(degrees)(pil_image)
 
+        torch.manual_seed(42)
         random.seed(42)
         cv_rotated = transforms.RandomRotation(degrees)(cv_image)
 

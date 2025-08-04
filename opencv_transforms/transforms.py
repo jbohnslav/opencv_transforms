@@ -869,7 +869,8 @@ class RandomRotation:
         Returns:
             sequence: params to be passed to ``rotate`` for random rotation.
         """
-        angle = random.uniform(degrees[0], degrees[1])
+        # Use torch random to match torchvision behavior for compatibility
+        angle = torch.empty(1).uniform_(degrees[0], degrees[1]).item()
 
         return angle
 

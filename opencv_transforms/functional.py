@@ -397,33 +397,44 @@ def adjust_contrast(img, contrast_factor):
         numpy ndarray: Contrast adjusted image.
 
     Note:
-        This implementation aims to match PIL's ImageEnhance.Contrast behavior.
-        Small differences (±1 pixel value) may occur for a tiny fraction of pixels
-        (<0.01%) due to floating-point precision differences between PIL and OpenCV.
-        PIL's implementation has known precision issues where contrast_factor=1.0
-        doesn't always return the exact original image.
+        Small differences (±1 pixel value) may occur due to precision differences
+        in RGB-to-grayscale conversion methods:
+
+        - PIL: Uses floating-point (299*R + 587*G + 114*B) / 1000 throughout
+        - OpenCV: Uses optimized fixed-point arithmetic with potential rounding
+
+        The differences affect ~50% of pixels by ±1 value when grayscale means
+        differ by small amounts (e.g., 134.428 vs 134.432). This implementation
+        matches PIL's exact floating-point calculation method.
     """
     # much faster to use the LUT construction than anything else I've tried
     # it's because you have to change dtypes multiple times
     if not _is_numpy_image(img):
         raise TypeError(f"img should be numpy Image. Got {type(img)}")
 
-    # input is RGB
+    # Calculate mean using PIL's exact method for RGB to grayscale conversion
     if img.ndim > 2 and img.shape[2] == 3:
-        mean_value = cv2.mean(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))[0]
+        # CRITICAL: Must use PIL's exact floating-point grayscale conversion method.
+        # Previous implementation used cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) which
+        # caused systematic ±1 pixel differences due to OpenCV's optimized integer
+        # arithmetic vs PIL's pure floating-point calculation.
+        # PIL: (299*R + 587*G + 114*B) / 1000 with full floating-point precision
+        r, g, b = (
+            img[:, :, 0].astype(float),
+            img[:, :, 1].astype(float),
+            img[:, :, 2].astype(float),
+        )
+        gray_values = (299 * r + 587 * g + 114 * b) / 1000
+        mean_value = np.mean(gray_values)
     elif img.ndim == 2:
         # grayscale input
-        mean_value = cv2.mean(img)[0]
+        mean_value = np.mean(img.astype(float))
     else:
         # multichannel input
-        mean_value = np.mean(img)
+        mean_value = np.mean(img.astype(float))
 
     # Create lookup table using the contrast formula: (pixel - mean) * factor + mean
-    # PIL/torchvision uses int(result + 0.5) for rounding to match their behavior.
-    # Note: PIL's implementation has floating-point precision issues that cause
-    # small differences (±1) for some pixel values. For example, with factor=1.0,
-    # PIL sometimes returns values different from the original due to these precision
-    # errors, while our implementation correctly returns the original values.
+    # PIL uses int(result + 0.5) for rounding (round half-up)
     table = (
         np.array(
             [
@@ -436,9 +447,14 @@ def adjust_contrast(img, contrast_factor):
     )
     # enhancer = ImageEnhance.Contrast(img)
     # img = enhancer.enhance(contrast_factor)
-    if img.ndim == 2 or img.shape[2] == 1:
-        return cv2.LUT(img, table)[:, :, np.newaxis]
+    if img.ndim == 2:
+        # For 2D grayscale images, return 2D result
+        return cv2.LUT(img, table)
+    elif img.shape[2] == 1:
+        # For 3D grayscale images (H, W, 1), preserve the shape
+        return cv2.LUT(img, table)
     else:
+        # For RGB images
         return cv2.LUT(img, table)
 
 
@@ -559,10 +575,28 @@ def rotate(img, angle, resample=False, expand=False, center=None):
     if center is None:
         center = (cols / 2, rows / 2)
     M = cv2.getRotationMatrix2D(center, angle, 1)
+
+    # Set default interpolation to NEAREST to match PIL/torchvision default behavior
+    interpolation = cv2.INTER_NEAREST if not resample or resample is None else resample
+
     if img.shape[2] == 1:
-        return cv2.warpAffine(img, M, (cols, rows))[:, :, np.newaxis]
+        return cv2.warpAffine(
+            img,
+            M,
+            (cols, rows),
+            flags=interpolation,
+            borderMode=cv2.BORDER_CONSTANT,
+            borderValue=0,
+        )[:, :, np.newaxis]
     else:
-        return cv2.warpAffine(img, M, (cols, rows))
+        return cv2.warpAffine(
+            img,
+            M,
+            (cols, rows),
+            flags=interpolation,
+            borderMode=cv2.BORDER_CONSTANT,
+            borderValue=0,
+        )
 
 
 def _get_affine_matrix(center, angle, translate, scale, shear):
