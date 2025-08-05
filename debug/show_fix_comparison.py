@@ -9,13 +9,13 @@ in geometric alignment between PIL and OpenCV implementations.
 Generated during coordinate system bug investigation.
 """
 
+import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
 import torch
 import torchvision.transforms as pil_transforms
+from PIL import Image
+
 import opencv_transforms.transforms as cv_transforms
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 
 
 def create_test_image(size=(200, 200)):
