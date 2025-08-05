@@ -8,12 +8,13 @@ where PIL treats integer coordinates as pixel centers while OpenCV treats them a
 Generated during coordinate system bug investigation - December 2024.
 """
 
+import cv2
 import numpy as np
-from PIL import Image
 import torch
 import torchvision.transforms as pil_transforms
+from PIL import Image
+
 import opencv_transforms.transforms as cv_transforms
-import cv2
 
 
 def test_coordinate_offset_fix():
