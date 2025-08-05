@@ -150,10 +150,11 @@ class TestSpatialTransforms:
         pil_image, cv_image = single_test_image
 
         # Use same seed for deterministic comparison
-        random.seed(42)
+        # Both torchvision and opencv_transforms now use torch random for compatibility
+        torch.manual_seed(42)
         pil_transformed = pil_transforms.RandomResizedCrop(size, scale=scale)(pil_image)
 
-        random.seed(42)
+        torch.manual_seed(42)
         cv_transformed = transforms.RandomResizedCrop(size, scale=scale)(cv_image)
 
         # Check output shapes match expected
@@ -164,8 +165,8 @@ class TestSpatialTransforms:
 
         # Compare the actual transformed outputs
         tolerances = TRANSFORM_TOLERANCES.get(
-            "resize", {}
-        )  # Use resize tolerances since it's resize-heavy
+            "random_resized_crop", {}
+        )  # Use specific tolerances for RandomResizedCrop
         assert_transforms_close(pil_transformed, cv_transformed, **tolerances)
 
     @pytest.mark.parametrize("size", [(224, 224), (256, 256), (128, 128)])
