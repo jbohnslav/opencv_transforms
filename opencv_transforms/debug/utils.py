@@ -4,12 +4,16 @@ This module provides tools for comparing and debugging differences between
 PIL (torchvision) and OpenCV implementations of image transforms.
 """
 
+import random
+
 import cv2
 import numpy as np
 from PIL import Image
+from torchvision import transforms as pil_transforms
 from torchvision.transforms import functional as F_pil
 
 from opencv_transforms import functional as F
+from opencv_transforms import transforms
 
 
 def compare_contrast_outputs(image, contrast_factor, verbose=True):
@@ -423,5 +427,173 @@ def test_rotation_angles(image, angles=None, verbose=True):  # noqa: PT028
     if verbose:
         passed = sum(1 for r in results if r["passes"])
         print(f"\nResults: {passed}/{len(results)} angles passed")
+
+    return results
+
+
+def compare_random_resized_crop_outputs(
+    image, size=224, scale=(0.5, 1.0), seed=42, verbose=True
+):
+    """Compare PIL vs OpenCV RandomResizedCrop outputs.
+
+    Args:
+        image: PIL Image to transform
+        size: Target size for RandomResizedCrop
+        scale: Scale range for RandomResizedCrop
+        seed: Random seed for reproducibility
+        verbose: Whether to print detailed information
+
+    Returns:
+        dict: Results containing differences and metadata
+    """
+
+    cv_image = np.array(image)
+
+    # Apply transforms with same seed
+    random.seed(seed)
+    pil_result = pil_transforms.RandomResizedCrop(size, scale=scale)(image)
+
+    random.seed(seed)
+    cv_result = transforms.RandomResizedCrop(size, scale=scale)(cv_image)
+
+    # Compare outputs
+    pil_array = np.array(pil_result)
+    diff = np.abs(pil_array.astype(np.float32) - cv_result.astype(np.float32))
+
+    max_diff = np.max(diff)
+    mean_diff = np.mean(diff)
+    num_diff = np.sum(diff > 0)
+    total_pixels = diff.size
+    percent_diff = (num_diff / total_pixels) * 100
+
+    if verbose:
+        print(
+            f"RandomResizedCrop Comparison (size={size}, scale={scale}, seed={seed}):"
+        )
+        print(f"  PIL result shape: {pil_array.shape}")
+        print(f"  OpenCV result shape: {cv_result.shape}")
+        print(f"  Max pixel difference: {max_diff:.2f}")
+        print(f"  Mean pixel difference: {mean_diff:.2f}")
+        print(f"  Differing pixels: {num_diff}/{total_pixels} ({percent_diff:.3f}%)")
+
+        # Check against current tolerances
+        passes_resize_tolerance = max_diff <= 120.0  # Current resize tolerance
+        print(
+            f"  Passes resize tolerance (≤120): {'✓' if passes_resize_tolerance else '✗'}"
+        )
+
+    return {
+        "max_diff": max_diff,
+        "mean_diff": mean_diff,
+        "num_diff": num_diff,
+        "total_pixels": total_pixels,
+        "percent_diff": percent_diff,
+        "pil_shape": pil_array.shape,
+        "cv_shape": cv_result.shape,
+        "passes_tolerance": max_diff <= 120.0,
+    }
+
+
+def debug_random_resized_crop_parameters(
+    image, size=224, scale=(0.5, 1.0), seed=42, verbose=True
+):
+    """Debug RandomResizedCrop parameter generation differences.
+
+    Args:
+        image: PIL Image to transform
+        size: Target size for RandomResizedCrop
+        scale: Scale range for RandomResizedCrop
+        seed: Random seed for reproducibility
+        verbose: Whether to print detailed information
+
+    Returns:
+        dict: Results containing parameter comparison
+    """
+
+    cv_image = np.array(image)
+
+    if verbose:
+        print(
+            f"RandomResizedCrop Parameter Debug (size={size}, scale={scale}, seed={seed}):"
+        )
+        print(f"  Original image shape: {cv_image.shape}")
+
+    # Get OpenCV parameters
+    random.seed(seed)
+    cv_transform = transforms.RandomResizedCrop(size, scale=scale)
+    ratio = (3.0 / 4.0, 4.0 / 3.0)  # Default ratio
+    i, j, h, w = cv_transform.get_params(cv_image, scale, ratio)
+
+    if verbose:
+        print(f"  OpenCV crop parameters: i={i}, j={j}, h={h}, w={w}")
+        print(f"  Crop region: [{i}:{i + h}, {j}:{j + w}]")
+
+    # Test parameter synchronization across multiple seeds
+    seeds_to_test = [42, 123, 456, 789]
+    param_results = []
+
+    for test_seed in seeds_to_test:
+        random.seed(test_seed)
+        test_i, test_j, test_h, test_w = cv_transform.get_params(cv_image, scale, ratio)
+        param_results.append(
+            {"seed": test_seed, "i": test_i, "j": test_j, "h": test_h, "w": test_w}
+        )
+
+        if verbose:
+            print(f"  Seed {test_seed}: i={test_i}, j={test_j}, h={test_h}, w={test_w}")
+
+    return {
+        "main_params": {"i": i, "j": j, "h": h, "w": w},
+        "param_results": param_results,
+        "image_shape": cv_image.shape,
+    }
+
+
+def test_random_resized_crop_scenarios(image, verbose=True):  # noqa: PT028
+    """Test RandomResizedCrop with various parameter combinations.
+
+    Args:
+        image: PIL Image to transform
+        verbose: Whether to print detailed information
+
+    Returns:
+        list: Results for each test scenario
+    """
+    test_scenarios = [
+        {"size": 224, "scale": (0.5, 1.0), "name": "Standard"},
+        {"size": 224, "scale": (0.8, 1.2), "name": "High scale"},
+        {"size": (200, 300), "scale": (0.6, 1.0), "name": "Non-square"},
+        {"size": 128, "scale": (0.3, 0.7), "name": "Small crop"},
+    ]
+
+    if verbose:
+        print("RandomResizedCrop Scenario Testing")
+        print("=" * 60)
+        print(
+            f"{'Scenario':<15} {'Size':<12} {'Scale':<15} {'Max Diff':<10} {'Pass':<8}"
+        )
+        print("-" * 60)
+
+    results = []
+
+    for scenario in test_scenarios:
+        result = compare_random_resized_crop_outputs(
+            image, size=scenario["size"], scale=scenario["scale"], verbose=False
+        )
+        result.update(scenario)
+
+        if verbose:
+            size_str = str(scenario["size"])
+            scale_str = f"{scenario['scale'][0]}-{scenario['scale'][1]}"
+            status = "PASS" if result["passes_tolerance"] else "FAIL"
+            print(
+                f"{scenario['name']:<15} {size_str:<12} {scale_str:<15} {result['max_diff']:<10.1f} {status:<8}"
+            )
+
+        results.append(result)
+
+    if verbose:
+        passed = sum(1 for r in results if r["passes_tolerance"])
+        print(f"\nResults: {passed}/{len(results)} scenarios passed")
 
     return results

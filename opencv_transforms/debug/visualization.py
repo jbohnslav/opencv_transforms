@@ -4,14 +4,8 @@ This module provides functions for creating comparison figures and
 visualizing differences between PIL and OpenCV transforms.
 """
 
+import matplotlib.pyplot as plt
 import numpy as np
-
-try:
-    import matplotlib.pyplot as plt
-
-    HAS_MATPLOTLIB = True
-except ImportError:
-    HAS_MATPLOTLIB = False
 
 
 def create_comparison_figure(
@@ -29,10 +23,6 @@ def create_comparison_figure(
     Raises:
         ImportError: If matplotlib is not available
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "matplotlib is required for visualization. Install with: pip install matplotlib"
-        )
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
@@ -90,10 +80,6 @@ def plot_pixel_distribution(pil_result, cv_result, bins=50):
     Raises:
         ImportError: If matplotlib is not available
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "matplotlib is required for visualization. Install with: pip install matplotlib"
-        )
 
     plt.figure(figsize=(10, 6))
 
@@ -124,10 +110,6 @@ def visualize_difference_heatmap(pil_result, cv_result, threshold=1):
     Raises:
         ImportError: If matplotlib is not available
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "matplotlib is required for visualization. Install with: pip install matplotlib"
-        )
 
     if pil_result.shape != cv_result.shape:
         print("Error: Images have different shapes")
@@ -176,10 +158,6 @@ def create_rotation_comparison_figure(
     Raises:
         ImportError: If matplotlib is not available
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "matplotlib is required for visualization. Install with: pip install matplotlib"
-        )
 
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 
@@ -263,10 +241,6 @@ def create_coordinate_system_comparison(
     Raises:
         ImportError: If matplotlib is not available
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "matplotlib is required for visualization. Install with: pip install matplotlib"
-        )
 
     fig, axes = plt.subplots(2, 4, figsize=(20, 10))
 
@@ -368,10 +342,6 @@ def create_rotation_test_summary_figure(test_results, save_path=None):
     Raises:
         ImportError: If matplotlib is not available
     """
-    if not HAS_MATPLOTLIB:
-        raise ImportError(
-            "matplotlib is required for visualization. Install with: pip install matplotlib"
-        )
 
     angles = [r["angle"] for r in test_results]
     max_diffs = [r["max_diff"] for r in test_results]
@@ -430,3 +400,183 @@ def create_rotation_test_summary_figure(test_results, save_path=None):
         plt.close()
     else:
         plt.show()
+
+    return fig
+
+
+def create_random_resized_crop_comparison(
+    pil_result, cv_result, parameters, save_path=None
+):
+    """Create a comparison visualization for RandomResizedCrop outputs.
+
+    Args:
+        pil_result: PIL RandomResizedCrop result (numpy array)
+        cv_result: OpenCV RandomResizedCrop result (numpy array)
+        parameters: Dict with crop parameters and metadata
+        save_path: Optional path to save the figure
+
+    Returns:
+        matplotlib.figure.Figure: The created figure
+    """
+
+    # Ensure inputs are numpy arrays
+    pil_array = (
+        np.array(pil_result) if not isinstance(pil_result, np.ndarray) else pil_result
+    )
+    cv_array = (
+        np.array(cv_result) if not isinstance(cv_result, np.ndarray) else cv_result
+    )
+
+    # Calculate difference
+    diff = np.abs(pil_array.astype(np.float32) - cv_array.astype(np.float32))
+    max_diff = np.max(diff)
+    mean_diff = np.mean(diff)
+
+    # Create figure with subplots
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+    fig.suptitle(
+        f"RandomResizedCrop Comparison (Max Diff: {max_diff:.1f})", fontsize=16
+    )
+
+    # Top row: PIL, OpenCV, Difference
+    axes[0, 0].imshow(pil_array)
+    axes[0, 0].set_title("PIL RandomResizedCrop")
+    axes[0, 0].axis("off")
+
+    axes[0, 1].imshow(cv_array)
+    axes[0, 1].set_title("OpenCV RandomResizedCrop")
+    axes[0, 1].axis("off")
+
+    # Difference heatmap
+    diff_display = np.mean(diff, axis=2) if len(diff.shape) == 3 else diff
+    im_diff = axes[0, 2].imshow(diff_display, cmap="hot", vmin=0, vmax=max_diff)
+    axes[0, 2].set_title(f"Difference (Max: {max_diff:.1f})")
+    axes[0, 2].axis("off")
+    plt.colorbar(im_diff, ax=axes[0, 2])
+
+    # Bottom row: Statistics and crop region info
+    axes[1, 0].axis("off")
+    stats_text = [
+        f"Max Difference: {max_diff:.2f}",
+        f"Mean Difference: {mean_diff:.2f}",
+        f"PIL Shape: {pil_array.shape}",
+        f"OpenCV Shape: {cv_array.shape}",
+        "",
+        "Crop Parameters:",
+        f"  i={parameters.get('i', 'N/A')}, j={parameters.get('j', 'N/A')}",
+        f"  h={parameters.get('h', 'N/A')}, w={parameters.get('w', 'N/A')}",
+        f"  Scale: {parameters.get('scale', 'N/A')}",
+        f"  Size: {parameters.get('size', 'N/A')}",
+    ]
+    axes[1, 0].text(
+        0.1,
+        0.9,
+        "\n".join(stats_text),
+        transform=axes[1, 0].transAxes,
+        fontsize=12,
+        verticalalignment="top",
+        fontfamily="monospace",
+    )
+
+    # Difference histogram
+    diff_flat = diff.flatten()
+    axes[1, 1].hist(diff_flat, bins=50, alpha=0.7, color="red")
+    axes[1, 1].set_title("Difference Distribution")
+    axes[1, 1].set_xlabel("Pixel Difference")
+    axes[1, 1].set_ylabel("Count")
+    axes[1, 1].axvline(
+        mean_diff, color="blue", linestyle="--", label=f"Mean: {mean_diff:.2f}"
+    )
+    axes[1, 1].legend()
+
+    # Sample comparison (center region)
+    center_y, center_x = pil_array.shape[0] // 2, pil_array.shape[1] // 2
+    sample_size = 20
+    y_start, y_end = (
+        max(0, center_y - sample_size // 2),
+        min(pil_array.shape[0], center_y + sample_size // 2),
+    )
+    x_start, x_end = (
+        max(0, center_x - sample_size // 2),
+        min(pil_array.shape[1], center_x + sample_size // 2),
+    )
+
+    pil_sample = pil_array[y_start:y_end, x_start:x_end]
+    diff_sample = diff[y_start:y_end, x_start:x_end]
+
+    # Show sample region with difference overlay
+    axes[1, 2].imshow(pil_sample)
+    if len(diff_sample.shape) == 3:
+        diff_sample_gray = np.mean(diff_sample, axis=2)
+    else:
+        diff_sample_gray = diff_sample
+    axes[1, 2].contour(
+        diff_sample_gray, levels=[10, 50, 100], colors="yellow", linewidths=1
+    )
+    axes[1, 2].set_title("Center Sample (Diff Contours)")
+    axes[1, 2].axis("off")
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+
+    return fig
+
+
+def create_random_resized_crop_parameter_comparison(parameter_results, save_path=None):
+    """Create visualization comparing RandomResizedCrop parameters across seeds.
+
+    Args:
+        parameter_results: List of parameter results from debug_random_resized_crop_parameters
+        save_path: Optional path to save the figure
+
+    Returns:
+        matplotlib.figure.Figure: The created figure
+    """
+
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    fig.suptitle("RandomResizedCrop Parameter Analysis", fontsize=16)
+
+    # Extract parameter data
+    seeds = [r["seed"] for r in parameter_results]
+    i_values = [r["i"] for r in parameter_results]
+    j_values = [r["j"] for r in parameter_results]
+    h_values = [r["h"] for r in parameter_results]
+    w_values = [r["w"] for r in parameter_results]
+
+    # Plot parameter distributions
+    axes[0, 0].bar(range(len(seeds)), i_values, alpha=0.7, color="red")
+    axes[0, 0].set_title("Crop Top Position (i)")
+    axes[0, 0].set_xlabel("Seed Index")
+    axes[0, 0].set_ylabel("i value")
+    axes[0, 0].set_xticks(range(len(seeds)))
+    axes[0, 0].set_xticklabels([str(s) for s in seeds], rotation=45)
+
+    axes[0, 1].bar(range(len(seeds)), j_values, alpha=0.7, color="green")
+    axes[0, 1].set_title("Crop Left Position (j)")
+    axes[0, 1].set_xlabel("Seed Index")
+    axes[0, 1].set_ylabel("j value")
+    axes[0, 1].set_xticks(range(len(seeds)))
+    axes[0, 1].set_xticklabels([str(s) for s in seeds], rotation=45)
+
+    axes[1, 0].bar(range(len(seeds)), h_values, alpha=0.7, color="blue")
+    axes[1, 0].set_title("Crop Height (h)")
+    axes[1, 0].set_xlabel("Seed Index")
+    axes[1, 0].set_ylabel("h value")
+    axes[1, 0].set_xticks(range(len(seeds)))
+    axes[1, 0].set_xticklabels([str(s) for s in seeds], rotation=45)
+
+    axes[1, 1].bar(range(len(seeds)), w_values, alpha=0.7, color="orange")
+    axes[1, 1].set_title("Crop Width (w)")
+    axes[1, 1].set_xlabel("Seed Index")
+    axes[1, 1].set_ylabel("w value")
+    axes[1, 1].set_xticks(range(len(seeds)))
+    axes[1, 1].set_xticklabels([str(s) for s in seeds], rotation=45)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+
+    return fig
