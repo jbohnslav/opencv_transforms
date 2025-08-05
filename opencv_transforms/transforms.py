@@ -533,27 +533,41 @@ class RandomResizedCrop:
             tuple: params (i, j, h, w) to be passed to ``crop`` for a random
                 sized crop.
         """
+        # Use torch random to match torchvision behavior for compatibility
+        height, width = img.shape[0], img.shape[1]
+        area = height * width
+
+        log_ratio = torch.log(torch.tensor(ratio))
+
         for _attempt in range(10):
-            area = img.shape[0] * img.shape[1]
-            target_area = random.uniform(*scale) * area
-            aspect_ratio = random.uniform(*ratio)
+            target_area = area * torch.empty(1).uniform_(scale[0], scale[1]).item()
+            aspect_ratio = torch.exp(
+                torch.empty(1).uniform_(log_ratio[0], log_ratio[1])
+            ).item()
 
             w = round(math.sqrt(target_area * aspect_ratio))
             h = round(math.sqrt(target_area / aspect_ratio))
 
-            if random.random() < 0.5:
-                w, h = h, w
-
-            if w <= img.shape[1] and h <= img.shape[0]:
-                i = random.randint(0, img.shape[0] - h)
-                j = random.randint(0, img.shape[1] - w)
+            if 0 < w <= width and 0 < h <= height:
+                i = torch.randint(0, height - h + 1, size=(1,)).item()
+                j = torch.randint(0, width - w + 1, size=(1,)).item()
                 return i, j, h, w
 
-        # Fallback
-        w = min(img.shape[0], img.shape[1])
-        i = (img.shape[0] - w) // 2
-        j = (img.shape[1] - w) // 2
-        return i, j, w, w
+        # Fallback to central crop (matches torchvision)
+        in_ratio = float(width) / float(height)
+        if in_ratio < min(ratio):
+            w = width
+            h = round(w / min(ratio))
+        elif in_ratio > max(ratio):
+            h = height
+            w = round(h * max(ratio))
+        else:  # whole image
+            w = width
+            h = height
+
+        i = (height - h) // 2
+        j = (width - w) // 2
+        return i, j, h, w
 
     def __call__(self, img):
         """
