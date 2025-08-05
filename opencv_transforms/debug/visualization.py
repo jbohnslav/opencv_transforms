@@ -159,3 +159,274 @@ def visualize_difference_heatmap(pil_result, cv_result, threshold=1):
 
     plt.tight_layout()
     plt.show()
+
+
+def create_rotation_comparison_figure(
+    original, pil_result, cv_result, angle, save_path=None
+):
+    """Create a comparison figure specifically for rotation transforms.
+
+    Args:
+        original: Original image as numpy array
+        pil_result: PIL rotation result as numpy array
+        cv_result: OpenCV rotation result as numpy array
+        angle: Rotation angle in degrees
+        save_path: Optional path to save the figure
+
+    Raises:
+        ImportError: If matplotlib is not available
+    """
+    if not HAS_MATPLOTLIB:
+        raise ImportError(
+            "matplotlib is required for visualization. Install with: pip install matplotlib"
+        )
+
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+
+    # Calculate difference and stats
+    diff = np.abs(pil_result.astype(float) - cv_result.astype(float))
+    max_diff = diff.max()
+    mean_diff = diff.mean()
+    num_diff = np.count_nonzero(diff > 0.1)
+    total_pixels = diff.size
+
+    # Top row: Images
+    axes[0, 0].imshow(original, cmap="gray" if original.ndim == 2 else None)
+    axes[0, 0].set_title("Original")
+    axes[0, 0].axis("off")
+
+    axes[0, 1].imshow(pil_result, cmap="gray" if pil_result.ndim == 2 else None)
+    axes[0, 1].set_title(f"PIL {angle}°")
+    axes[0, 1].axis("off")
+
+    axes[0, 2].imshow(cv_result, cmap="gray" if cv_result.ndim == 2 else None)
+    axes[0, 2].set_title(f"OpenCV {angle}°")
+    axes[0, 2].axis("off")
+
+    # Bottom row: Analysis
+    # Difference heatmap
+    im1 = axes[1, 0].imshow(
+        diff[:, :, 0] if diff.ndim == 3 else diff, cmap="hot", vmin=0, vmax=255
+    )
+    axes[1, 0].set_title("Difference Heatmap")
+    axes[1, 0].axis("off")
+    plt.colorbar(im1, ax=axes[1, 0])
+
+    # Enhanced difference (5x)
+    diff_enhanced = np.clip(diff * 5, 0, 255)
+    axes[1, 1].imshow(
+        diff_enhanced[:, :, 0] if diff_enhanced.ndim == 3 else diff_enhanced, cmap="hot"
+    )
+    axes[1, 1].set_title("Difference x5")
+    axes[1, 1].axis("off")
+
+    # Statistics
+    axes[1, 2].text(
+        0.1,
+        0.8,
+        f"Rotation: {angle}°\n\n"
+        f"Max difference: {max_diff:.1f}\n"
+        f"Mean difference: {mean_diff:.3f}\n"
+        f"Differing pixels: {num_diff:,}\n"
+        f"Percentage: {num_diff / total_pixels * 100:.2f}%",
+        transform=axes[1, 2].transAxes,
+        fontsize=12,
+        verticalalignment="top",
+        bbox={"boxstyle": "round", "facecolor": "lightblue", "alpha": 0.7},
+    )
+    axes[1, 2].set_xlim(0, 1)
+    axes[1, 2].set_ylim(0, 1)
+    axes[1, 2].axis("off")
+
+    plt.suptitle(f"Rotation Comparison: {angle}°", fontsize=16)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+    else:
+        plt.show()
+
+
+def create_coordinate_system_comparison(
+    old_result, new_result, pil_result, angle, save_path=None
+):
+    """Create a before/after comparison showing coordinate system fix impact.
+
+    Args:
+        old_result: OpenCV result with old coordinate system
+        new_result: OpenCV result with new coordinate system
+        pil_result: PIL result (ground truth)
+        angle: Rotation angle in degrees
+        save_path: Optional path to save the figure
+
+    Raises:
+        ImportError: If matplotlib is not available
+    """
+    if not HAS_MATPLOTLIB:
+        raise ImportError(
+            "matplotlib is required for visualization. Install with: pip install matplotlib"
+        )
+
+    fig, axes = plt.subplots(2, 4, figsize=(20, 10))
+
+    # Calculate differences
+    diff_old = np.abs(pil_result.astype(float) - old_result.astype(float))
+    diff_new = np.abs(pil_result.astype(float) - new_result.astype(float))
+
+    # Top row: Before fix
+    axes[0, 0].imshow(pil_result, cmap="gray" if pil_result.ndim == 2 else None)
+    axes[0, 0].set_title("PIL (Target)")
+    axes[0, 0].axis("off")
+
+    axes[0, 1].imshow(old_result, cmap="gray" if old_result.ndim == 2 else None)
+    axes[0, 1].set_title("OpenCV (Old Coords)")
+    axes[0, 1].axis("off")
+
+    diff_old_enhanced = np.clip(diff_old * 5, 0, 255)
+    axes[0, 2].imshow(
+        diff_old_enhanced[:, :, 0]
+        if diff_old_enhanced.ndim == 3
+        else diff_old_enhanced,
+        cmap="hot",
+    )
+    axes[0, 2].set_title(f"Old Diff x5\nMax: {diff_old.max():.1f}")
+    axes[0, 2].axis("off")
+
+    # Stats for old system
+    num_diff_old = np.count_nonzero(diff_old > 0.1)
+    axes[0, 3].text(
+        0.1,
+        0.7,
+        f"BEFORE FIX:\nMax diff: {diff_old.max():.1f}\n"
+        f"Mean diff: {diff_old.mean():.3f}\n"
+        f"Differing pixels: {num_diff_old:,}",
+        transform=axes[0, 3].transAxes,
+        fontsize=12,
+        verticalalignment="top",
+        bbox={"boxstyle": "round", "facecolor": "lightcoral", "alpha": 0.7},
+    )
+    axes[0, 3].set_xlim(0, 1)
+    axes[0, 3].set_ylim(0, 1)
+    axes[0, 3].axis("off")
+
+    # Bottom row: After fix
+    axes[1, 0].imshow(pil_result, cmap="gray" if pil_result.ndim == 2 else None)
+    axes[1, 0].set_title("PIL (Target)")
+    axes[1, 0].axis("off")
+
+    axes[1, 1].imshow(new_result, cmap="gray" if new_result.ndim == 2 else None)
+    axes[1, 1].set_title("OpenCV (Fixed Coords)")
+    axes[1, 1].axis("off")
+
+    diff_new_enhanced = np.clip(diff_new * 5, 0, 255)
+    axes[1, 2].imshow(
+        diff_new_enhanced[:, :, 0]
+        if diff_new_enhanced.ndim == 3
+        else diff_new_enhanced,
+        cmap="hot",
+    )
+    axes[1, 2].set_title(f"New Diff x5\nMax: {diff_new.max():.1f}")
+    axes[1, 2].axis("off")
+
+    # Stats for new system
+    num_diff_new = np.count_nonzero(diff_new > 0.1)
+    improvement = num_diff_old - num_diff_new
+    axes[1, 3].text(
+        0.1,
+        0.7,
+        f"AFTER FIX:\nMax diff: {diff_new.max():.1f}\n"
+        f"Mean diff: {diff_new.mean():.3f}\n"
+        f"Differing pixels: {num_diff_new:,}\n\n"
+        f"IMPROVEMENT:\n{improvement:,} fewer pixels",
+        transform=axes[1, 3].transAxes,
+        fontsize=12,
+        verticalalignment="top",
+        bbox={"boxstyle": "round", "facecolor": "lightgreen", "alpha": 0.7},
+    )
+    axes[1, 3].set_xlim(0, 1)
+    axes[1, 3].set_ylim(0, 1)
+    axes[1, 3].axis("off")
+
+    plt.suptitle(f"Coordinate System Fix Comparison: {angle}°", fontsize=16)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+    else:
+        plt.show()
+
+
+def create_rotation_test_summary_figure(test_results, save_path=None):
+    """Create a summary figure showing rotation test results across angles.
+
+    Args:
+        test_results: List of test results from test_rotation_angles()
+        save_path: Optional path to save the figure
+
+    Raises:
+        ImportError: If matplotlib is not available
+    """
+    if not HAS_MATPLOTLIB:
+        raise ImportError(
+            "matplotlib is required for visualization. Install with: pip install matplotlib"
+        )
+
+    angles = [r["angle"] for r in test_results]
+    max_diffs = [r["max_diff"] for r in test_results]
+    mean_diffs = [r["mean_diff"] for r in test_results]
+    passes = [r["passes"] for r in test_results]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+    # Max differences plot
+    colors = ["green" if p else "red" for p in passes]
+    bars1 = ax1.bar(angles, max_diffs, color=colors, alpha=0.7)
+    ax1.axhline(y=220.0, color="red", linestyle="--", label="Tolerance (220.0)")
+    ax1.set_xlabel("Rotation Angle (degrees)")
+    ax1.set_ylabel("Maximum Pixel Difference")
+    ax1.set_title("Maximum Differences by Angle")
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+
+    # Add value labels on bars
+    for bar, diff in zip(bars1, max_diffs):
+        height = bar.get_height()
+        ax1.text(
+            bar.get_x() + bar.get_width() / 2.0,
+            height + 5,
+            f"{diff:.1f}",
+            ha="center",
+            va="bottom",
+        )
+
+    # Mean differences plot
+    ax2.plot(angles, mean_diffs, "bo-", linewidth=2, markersize=8)
+    ax2.set_xlabel("Rotation Angle (degrees)")
+    ax2.set_ylabel("Mean Pixel Difference")
+    ax2.set_title("Mean Differences by Angle")
+    ax2.grid(True, alpha=0.3)
+
+    # Add value labels
+    for angle, diff in zip(angles, mean_diffs):
+        ax2.text(
+            angle,
+            diff + max(mean_diffs) * 0.05,
+            f"{diff:.3f}",
+            ha="center",
+            va="bottom",
+        )
+
+    # Summary text
+    passed = sum(passes)
+    total = len(passes)
+    fig.suptitle(f"Rotation Test Summary: {passed}/{total} angles passed", fontsize=16)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+    else:
+        plt.show()
