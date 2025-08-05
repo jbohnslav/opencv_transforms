@@ -597,3 +597,49 @@ def test_random_resized_crop_scenarios(image, verbose=True):  # noqa: PT028
         print(f"\nResults: {passed}/{len(results)} scenarios passed")
 
     return results
+
+
+def debug_deterministic_random_resized_crop(
+    crop_params=(10, 20, 180, 260), output_size=(224, 224), tolerance=120.0
+):
+    """Debug RandomResizedCrop with manually set parameters to isolate core functionality.
+
+    Args:
+        crop_params: Tuple of (i, j, h, w) crop parameters
+        output_size: Output size for resize operation
+        tolerance: Maximum allowed pixel difference
+
+    Returns:
+        dict: Test results with max_diff, mean_diff, passes, etc.
+    """
+
+    # Create test image
+    cv_img = np.random.randint(0, 256, (200, 300, 3), dtype=np.uint8)
+    pil_img = Image.fromarray(cv_img)
+
+    i, j, h, w = crop_params
+
+    # PIL version
+    pil_cropped = pil_img.crop((j, i, j + w, i + h))
+    pil_resized = pil_cropped.resize(output_size, Image.BILINEAR)
+    pil_result = np.array(pil_resized)
+
+    # OpenCV version
+    cv_cropped = cv_img[i : i + h, j : j + w]
+    cv_result = F.resize(cv_cropped, output_size)
+
+    # Compare results
+    diff = np.abs(pil_result.astype(np.float32) - cv_result.astype(np.float32))
+    max_diff = np.max(diff)
+    mean_diff = np.mean(diff)
+
+    passes = max_diff <= tolerance
+
+    return {
+        "max_diff": max_diff,
+        "mean_diff": mean_diff,
+        "passes": passes,
+        "crop_params": crop_params,
+        "output_size": output_size,
+        "tolerance": tolerance,
+    }
