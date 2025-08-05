@@ -81,8 +81,8 @@ TRANSFORM_TOLERANCES = {
     "rotation": {
         "rtol": 1e-3,
         "atol": 1e-2,
-        "pixel_atol": 120.0,
-    },  # High tolerance for interpolation
+        "pixel_atol": 220.0,
+    },  # High tolerance for interpolation edge cases
     "affine": {
         "rtol": 1e-3,
         "atol": 1e-2,

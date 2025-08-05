@@ -556,6 +556,11 @@ def adjust_gamma(img, gamma, gain=1):
 
 def rotate(img, angle, resample=False, expand=False, center=None):
     """Rotate the image by angle.
+
+    Note:
+        Center coordinate calculation uses ((w-1)*0.5, (h-1)*0.5) to match PIL's
+        pixel-center coordinate system, as opposed to OpenCV's default pixel-corner system.
+
     Args:
         img (numpy ndarray): numpy ndarray to be rotated.
         angle (float or int): In degrees degrees counter clockwise order.
@@ -575,7 +580,7 @@ def rotate(img, angle, resample=False, expand=False, center=None):
         raise TypeError(f"img should be numpy Image. Got {type(img)}")
     rows, cols = img.shape[0:2]
     if center is None:
-        center = (cols / 2, rows / 2)
+        center = ((cols - 1) * 0.5, (rows - 1) * 0.5)
     M = cv2.getRotationMatrix2D(center, angle, 1)
 
     # Set default interpolation to NEAREST to match PIL/torchvision default behavior
