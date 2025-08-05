@@ -960,7 +960,7 @@ class RandomAffine:
         translate=None,
         scale=None,
         shear=None,
-        interpolation=cv2.INTER_LINEAR,
+        interpolation=cv2.INTER_NEAREST,
         fillcolor=0,
     ):
         if isinstance(degrees, numbers.Number):
@@ -1016,23 +1016,36 @@ class RandomAffine:
         Returns:
             sequence: params to be passed to the affine transformation
         """
-        angle = random.uniform(degrees[0], degrees[1])
+        # Use torch random to match torchvision behavior
+        angle = torch.empty(1).uniform_(degrees[0], degrees[1]).item()
         if translate is not None:
             max_dx = translate[0] * img_size[0]
             max_dy = translate[1] * img_size[1]
             translations = (
-                np.round(random.uniform(-max_dx, max_dx)),
-                np.round(random.uniform(-max_dy, max_dy)),
+                np.round(torch.empty(1).uniform_(-max_dx, max_dx).item()),
+                np.round(torch.empty(1).uniform_(-max_dy, max_dy).item()),
             )
         else:
             translations = (0, 0)
 
         if scale_ranges is not None:
-            scale = random.uniform(scale_ranges[0], scale_ranges[1])
+            scale = torch.empty(1).uniform_(scale_ranges[0], scale_ranges[1]).item()
         else:
             scale = 1.0
 
-        shear = random.uniform(shears[0], shears[1]) if shears is not None else 0.0
+        if shears is not None:
+            # torchvision returns (shear_x, shear_y) tuple
+            if len(shears) == 2:
+                # If only 2 values, it's x-axis shear only
+                shear_x = torch.empty(1).uniform_(shears[0], shears[1]).item()
+                shear_y = 0.0
+            else:
+                # If 4 values, separate x and y shear
+                shear_x = torch.empty(1).uniform_(shears[0], shears[1]).item()
+                shear_y = torch.empty(1).uniform_(shears[2], shears[3]).item()
+            shear = (shear_x, shear_y)
+        else:
+            shear = (0.0, 0.0)
 
         return angle, translations, scale, shear
 

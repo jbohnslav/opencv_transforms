@@ -607,23 +607,39 @@ def _get_affine_matrix(center, angle, translate, scale, shear):
     # where T is translation matrix: [1, 0, tx | 0, 1, ty | 0, 0, 1]
     #       C is translation matrix to keep center: [1, 0, cx | 0, 1, cy | 0, 0, 1]
     #       RSS is rotation with scale and shear matrix
-    #       RSS(a, scale, shear) = [ cos(a)*scale    -sin(a + shear)*scale     0]
-    #                              [ sin(a)*scale    cos(a + shear)*scale     0]
-    #                              [     0                  0          1]
 
     angle = math.radians(angle)
-    shear = math.radians(shear)
-    # scale = 1.0 / scale
+
+    # Handle shear as either single value or (shear_x, shear_y) tuple
+    if isinstance(shear, (list, tuple)):
+        shear_x = math.radians(shear[0])
+        shear_y = math.radians(shear[1]) if len(shear) > 1 else 0
+    else:
+        shear_x = math.radians(shear)
+        shear_y = 0
 
     T = np.array([[1, 0, translate[0]], [0, 1, translate[1]], [0, 0, 1]])
     C = np.array([[1, 0, center[0]], [0, 1, center[1]], [0, 0, 1]])
-    RSS = np.array(
+
+    # Create rotation matrix
+    cos_angle = math.cos(angle)
+    sin_angle = math.sin(angle)
+
+    # Apply shear
+    shear_x_matrix = np.array([[1, -math.tan(shear_x), 0], [0, 1, 0], [0, 0, 1]])
+    shear_y_matrix = np.array([[1, 0, 0], [-math.tan(shear_y), 1, 0], [0, 0, 1]])
+
+    # Apply rotation and scale
+    RS = np.array(
         [
-            [math.cos(angle) * scale, -math.sin(angle + shear) * scale, 0],
-            [math.sin(angle) * scale, math.cos(angle + shear) * scale, 0],
+            [cos_angle * scale, -sin_angle * scale, 0],
+            [sin_angle * scale, cos_angle * scale, 0],
             [0, 0, 1],
         ]
     )
+
+    # Combine transformations
+    RSS = RS @ shear_y_matrix @ shear_x_matrix
     matrix = T @ C @ RSS @ np.linalg.inv(C)
 
     return matrix[:2, :]
@@ -635,7 +651,7 @@ def affine(
     translate,
     scale,
     shear,
-    interpolation=cv2.INTER_LINEAR,
+    interpolation=cv2.INTER_NEAREST,
     mode=cv2.BORDER_CONSTANT,
     fillcolor=0,
 ):
@@ -645,7 +661,9 @@ def affine(
         angle (float or int): rotation angle in degrees between -180 and 180, clockwise direction.
         translate (list or tuple of integers): horizontal and vertical translations (post-rotation translation)
         scale (float): overall scale
-        shear (float): shear angle value in degrees between -180 to 180, clockwise direction.
+        shear (float or sequence): shear angle value in degrees between -180 to 180, clockwise direction.
+            If shear is a single value, a shear parallel to the x-axis is performed.
+            If shear is a tuple of 2 values, an x-axis shear and y-axis shear are performed.
         interpolation (``cv2.INTER_NEAREST` or ``cv2.INTER_LINEAR`` or ``cv2.INTER_AREA``, ``cv2.INTER_CUBIC``):
             An optional resampling filter.
             See `filters`_ for more information.
@@ -665,24 +683,40 @@ def affine(
     assert scale > 0.0, "Argument scale should be positive"
 
     output_size = img.shape[0:2]
-    center = (img.shape[1] * 0.5 + 0.5, img.shape[0] * 0.5 + 0.5)
+    # Use PIL-equivalent center coordinates to fix 0.5-pixel offset
+    # PIL treats integer coordinates as pixel centers, OpenCV as corners
+    center = ((img.shape[1] - 1) * 0.5, (img.shape[0] - 1) * 0.5)
     matrix = _get_affine_matrix(center, angle, translate, scale, shear)
 
-    if img.shape[2] == 1:
+    # Handle both 2D (grayscale) and 3D (color) images
+    if len(img.shape) == 2:
+        # Grayscale image
+        result = cv2.warpAffine(
+            img,
+            matrix,
+            output_size[::-1],
+            flags=interpolation,
+            borderMode=mode,
+            borderValue=fillcolor,
+        )
+        return result
+    elif img.shape[2] == 1:
+        # Single channel 3D image
         return cv2.warpAffine(
             img,
             matrix,
             output_size[::-1],
-            interpolation,
+            flags=interpolation,
             borderMode=mode,
             borderValue=fillcolor,
         )[:, :, np.newaxis]
     else:
+        # Multi-channel 3D image
         return cv2.warpAffine(
             img,
             matrix,
             output_size[::-1],
-            interpolation,
+            flags=interpolation,
             borderMode=mode,
             borderValue=fillcolor,
         )
