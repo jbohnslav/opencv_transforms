@@ -162,6 +162,12 @@ class TestSpatialTransforms:
         assert np.array(pil_transformed).shape[:2] == expected_shape
         assert cv_transformed.shape[:2] == expected_shape
 
+        # Compare the actual transformed outputs
+        tolerances = TRANSFORM_TOLERANCES.get(
+            "resize", {}
+        )  # Use resize tolerances since it's resize-heavy
+        assert_transforms_close(pil_transformed, cv_transformed, **tolerances)
+
     @pytest.mark.parametrize("size", [(224, 224), (256, 256), (128, 128)])
     def test_scale_deprecated(self, single_test_image, size):
         """Test deprecated Scale transform matches Resize behavior."""
