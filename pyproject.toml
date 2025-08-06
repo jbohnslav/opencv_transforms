@@ -98,7 +98,7 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 source = ["opencv_transforms"]
-omit = ["tests/*", "*/conftest.py"]
+omit = ["tests/*", "*/conftest.py", "opencv_transforms/debug/*"]
 
 [tool.coverage.report]
 precision = 2

@@ -82,10 +82,10 @@ opencv_transforms/__init__.py         0      0 100.00%
 opencv_transforms/functional.py     246     50  79.67%
 opencv_transforms/transforms.py     455     68  85.05%
 ----------------------------------------------------------------
-TOTAL                              1286    703  45.33%
+TOTAL                               701    118  83.17%
 ```
 
-**Overall coverage: 45.33%** - Recent improvements focused on functional.py (79.67%) and transforms.py (85.05%). Note: Total statements increased significantly due to including debug modules in coverage calculation.
+**Overall coverage: 83.17%** - Excellent coverage with debug modules excluded from calculation. Core functionality is well-tested with functional.py (79.67%) and transforms.py (85.05%).
 
 ## Testing Philosophy
 
@@ -350,7 +350,7 @@ This example demonstrates the key principle: **PyTorch is ground truth**, and al
 
 - **functional.py**: 79.67% coverage (up from previous versions)
 - **transforms.py**: 85.05% coverage (excellent coverage)
-- **Overall**: 45.33% (appears lower due to inclusion of debug modules in calculation)
+- **Overall**: 83.17% (excellent coverage with debug modules excluded from calculation)
 
 ### 🎯 Remaining High-Value Testing Opportunities
 
