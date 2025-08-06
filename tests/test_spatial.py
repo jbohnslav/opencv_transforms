@@ -190,6 +190,30 @@ class TestSpatialTransforms:
         assert np.array_equal(cv_scaled, cv_resized)
         assert cv_scaled.shape[:2] == size
 
+    @pytest.mark.parametrize("scale", [(0.5, 1.0)])
+    @pytest.mark.parametrize("size", [224])
+    def test_random_sized_crop_deprecated(self, single_test_image, scale, size):
+        """Test deprecated RandomSizedCrop transform matches RandomResizedCrop behavior."""
+        pil_image, cv_image = single_test_image
+
+        # Test that RandomSizedCrop produces the same result as RandomResizedCrop
+        torch.manual_seed(42)
+        cv_resized_crop = transforms.RandomResizedCrop(size, scale=scale)(cv_image)
+
+        # Test RandomSizedCrop (should produce deprecation warning)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            torch.manual_seed(42)
+            cv_random_sized = transforms.RandomSizedCrop(size, scale=scale)(cv_image)
+            # Verify deprecation warning was issued
+            assert len(w) == 1
+            assert issubclass(w[-1].category, UserWarning)
+            assert "RandomSizedCrop" in str(w[-1].message)
+            assert "RandomResizedCrop" in str(w[-1].message)
+
+        # RandomSizedCrop should produce same result as RandomResizedCrop
+        np.testing.assert_array_equal(cv_random_sized, cv_resized_crop)
+
     @pytest.mark.parametrize("padding", [10, (5, 10), (5, 10, 15, 20)])
     @pytest.mark.parametrize("fill", [0, 128, (255, 0, 0)])
     @pytest.mark.parametrize(

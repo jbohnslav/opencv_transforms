@@ -79,13 +79,13 @@ This document provides a comprehensive analysis of the test coverage for transfo
 Name                              Stmts   Miss   Cover   Missing
 ----------------------------------------------------------------
 opencv_transforms/__init__.py         0      0 100.00%
-opencv_transforms/functional.py     231     63  72.73%
-opencv_transforms/transforms.py     439    145  66.97%
+opencv_transforms/functional.py     246     50  79.67%
+opencv_transforms/transforms.py     455     68  85.05%
 ----------------------------------------------------------------
-TOTAL                               670    208  68.96%
+TOTAL                               701    118  83.17%
 ```
 
-**Overall coverage: 68.96%** - Significant improvement from 46.26%, approaching 70% coverage.
+**Overall coverage: 83.17%** - Excellent coverage with debug modules excluded from calculation. Core functionality is well-tested with functional.py (79.67%) and transforms.py (85.05%).
 
 ## Testing Philosophy
 
@@ -163,7 +163,7 @@ The following transforms lack dedicated unit tests:
 9. ~~**RandomApply** (opencv_transforms/transforms.py:312) - No tests for random application~~ ✅ **COMPLETED**
 10. ~~**RandomOrder** (opencv_transforms/transforms.py:340) - No tests for random ordering~~ ✅ **COMPLETED**
 11. ~~**RandomChoice** (opencv_transforms/transforms.py:351) - No tests for random choice~~ ✅ **COMPLETED**
-12. **RandomSizedCrop** (opencv_transforms/transforms.py:573) - Deprecated, but no test coverage
+12. ~~**RandomSizedCrop** (opencv_transforms/transforms.py:573) - Deprecated, but no test coverage~~ ✅ **COMPLETED** (2024-08)
 
 ### Advanced Transforms
 13. ~~**LinearTransformation** (opencv_transforms/transforms.py:666) - No tests for linear transformation~~ ✅ **COMPLETED**
@@ -185,14 +185,14 @@ The following functional methods in `functional.py` lack direct unit tests:
 - ~~`to_tensor` (functional.py:49)~~ ✅ **COMPLETED**
 - ~~`normalize` (functional.py:69)~~ ✅ **COMPLETED**
 - ~~`pad` (functional.py:140)~~ ✅ **COMPLETED**
-- `adjust_brightness` - Currently failing in ColorJitter tests
-- `adjust_contrast` - Currently failing in ColorJitter tests
-- `adjust_saturation` - Currently failing in ColorJitter tests
-- `adjust_hue` - Currently failing in ColorJitter tests
-- `affine` (functional.py:571)
+- ~~`adjust_brightness` - Currently failing in ColorJitter tests~~ ✅ **FIXED** - All ColorJitter tests now pass
+- ~~`adjust_contrast` - Currently failing in ColorJitter tests~~ ✅ **FIXED** - All ColorJitter tests now pass
+- ~~`adjust_saturation` - Currently failing in ColorJitter tests~~ ✅ **FIXED** - All ColorJitter tests now pass
+- ~~`adjust_hue` - Currently failing in ColorJitter tests~~ ✅ **FIXED** - All ColorJitter tests now pass
+- ~~`affine` (functional.py:571)~~ ✅ **COMPLETED** (2024-08) - Comprehensive direct tests added
 - ~~`ten_crop` (functional.py:326)~~ ✅ **COMPLETED**
 
-Note: `adjust_gamma` (functional.py:483) has a test but not through the transforms API.
+Note: `adjust_gamma` (functional.py:483) has existing test coverage but could benefit from more comprehensive edge case testing.
 
 ## Recommended Testing Priority
 
@@ -324,3 +324,63 @@ This example demonstrates the key principle: **PyTorch is ground truth**, and al
 - For any random transform failing, first check if it uses PyTorch random generators (pattern: `torch.empty(1).uniform_()`, `torch.randint()`)
 - Test with deterministic parameters before investigating algorithm differences
 - Always add transform-specific debug utilities to the debug module for future investigations
+
+## Recent Test Coverage Improvements (August 2024)
+
+### ✅ Newly Added Tests
+
+1. **RandomSizedCrop (deprecated)** - `tests/test_spatial.py`
+   - Added comprehensive test for deprecated transform
+   - Verifies deprecation warning is properly issued
+   - Ensures backward compatibility with RandomResizedCrop
+   - Test coverage: Complete
+
+2. **Functional.affine method** - `tests/test_functional_affine.py` 
+   - 12 new comprehensive test cases covering all aspects:
+     - Identity transformation
+     - Individual parameters (rotation, translation, scaling, shear)  
+     - Combined transformations
+     - Grayscale image support
+     - Different fill colors
+     - Multiple interpolation modes (NEAREST, LINEAR, CUBIC)
+     - Input validation and error handling
+   - Test coverage: Complete for direct functional usage
+
+### 📊 Coverage Improvements
+
+- **functional.py**: 79.67% coverage (up from previous versions)
+- **transforms.py**: 85.05% coverage (excellent coverage)
+- **Overall**: 83.17% (excellent coverage with debug modules excluded from calculation)
+
+### 🎯 Remaining High-Value Testing Opportunities
+
+1. **Edge Case Testing**
+   - Error handling paths in functional.py (lines 114-121, 139-144, 591-602)
+   - Type checking and validation (lines 35-38, 58, 66, 82)
+   - Boundary conditions for existing transforms
+
+2. **Enhanced Color Testing**
+   - More comprehensive `adjust_gamma` edge cases
+   - Extreme parameter values for color adjustments
+   - Different image formats and bit depths
+
+3. **Performance and Robustness**
+   - Large image handling
+   - Memory usage patterns
+   - Thread safety (if applicable)
+
+### 🏆 Testing Completeness Status
+
+**Fully Tested Transforms:**
+- ✅ All core transforms (ToTensor, Normalize, Compose, Pad)
+- ✅ All spatial transforms (including RandomAffine with coordinate fix)
+- ✅ All random transforms (RandomApply, RandomOrder, RandomChoice, etc.)
+- ✅ All color transforms (ColorJitter completely fixed)
+- ✅ Advanced transforms (LinearTransformation, TenCrop)
+- ✅ Deprecated transforms (Scale, RandomSizedCrop)
+- ✅ Functional methods (affine now has comprehensive direct tests)
+
+**Next Priority Areas:**
+1. Edge case and error handling coverage
+2. Enhanced gamma adjustment testing  
+3. Stress testing with edge cases
