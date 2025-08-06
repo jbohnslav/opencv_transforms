@@ -21,6 +21,6 @@ coverage.xml
 *.coverage
 
 # Debug files
-
+*.png
 tests/.cache/
 debug/*.png

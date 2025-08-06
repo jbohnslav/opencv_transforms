@@ -775,12 +775,15 @@ class ColorJitter:
             if clip_first_on_zero:
                 value[0] = max(value[0], 0)
         elif isinstance(value, (tuple, list)) and len(value) == 2:
-            if not bound[0] <= value[0] <= value[1] <= bound[1]:
-                raise ValueError(f"{name} values should be between {bound}")
+            pass  # Will be checked below
         else:
             raise TypeError(
                 f"{name} should be a single number or a list/tuple with length 2."
             )
+
+        # Check bounds for both single values (converted to ranges) and tuple/list values
+        if not bound[0] <= value[0] <= value[1] <= bound[1]:
+            raise ValueError(f"{name} values should be between {bound}")
 
         # if value is 0 or (1., 1.) for brightness/contrast/saturation
         # or (0., 0.) for hue, do nothing
