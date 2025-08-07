@@ -1,3 +1,5 @@
+"""Benchmark script for comparing PIL and OpenCV transform performance."""
+
 import random
 import time
 from typing import Callable
@@ -8,8 +10,6 @@ from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import PIL.Image
-import PIL.ImageEnhance
 import torch
 from datasets import load_dataset
 from PIL import Image
@@ -18,28 +18,124 @@ from torchvision import transforms as pil_transforms
 from opencv_transforms import transforms as cv_transforms
 
 
-def load_test_samples(num_samples: int = 100) -> List:
-    """Load test samples from a public dataset."""
-    print("Loading test dataset...")
-    # Use a smaller, public dataset for benchmarking
-    dataset = load_dataset("beans", split="train", streaming=True)
+def load_cityscapes_dataset(num_samples: int = 100) -> List[Image.Image]:
+    """Load Cityscapes dataset images for benchmarking."""
+    print("Loading Cityscapes dataset...")
+    try:
+        # Try to load Cityscapes dataset
+        dataset = load_dataset("Chris1/cityscapes", split="validation", streaming=True)
+        print("Using Cityscapes dataset for benchmarking")
 
-    samples = []
-    print(f"Pre-loading {num_samples} samples...")
-    for i, sample in enumerate(dataset):
-        if i >= num_samples:
-            break
-        samples.append(sample["image"])
-        if (i + 1) % 20 == 0:
-            print(f"Loaded {i + 1}/{num_samples} samples")
+        samples = []
+        print(f"Loading {num_samples} samples...")
+        for i, sample in enumerate(dataset):
+            if i >= num_samples:
+                break
+            samples.append(sample["image"])
+            if (i + 1) % 20 == 0:
+                print(f"Loaded {i + 1}/{num_samples} samples")
 
-    return samples
+        return samples
+
+    except Exception as e:
+        print(f"Failed to load Cityscapes dataset: {e}")
+        print("Creating synthetic large images as fallback...")
+        # Create synthetic images as fallback (large size for Cityscapes replacement)
+        samples = []
+        for _ in range(num_samples):
+            # Create random RGB image similar to Cityscapes size
+            np_img = np.random.randint(0, 255, (1024, 2048, 3), dtype=np.uint8)
+            pil_img = Image.fromarray(np_img)
+            samples.append(pil_img)
+
+        return samples
 
 
-def prepare_images(samples: List) -> Tuple[List, List]:
-    """Convert samples to both PIL and numpy format."""
-    pil_images = samples  # Already PIL images
-    cv_images = [np.array(img) for img in samples]  # Convert to numpy
+def load_imagenet_validation(num_samples: int = 100) -> List[Image.Image]:
+    """Load ImageNet validation set images for benchmarking."""
+    print("Loading ImageNet validation dataset...")
+    try:
+        # Try to load ImageNet validation set
+        dataset = load_dataset("imagenet-1k", split="validation", streaming=True)
+        print("Using ImageNet validation set for benchmarking")
+
+        samples = []
+        print(f"Loading {num_samples} samples...")
+        for i, sample in enumerate(dataset):
+            if i >= num_samples:
+                break
+            # Keep original resolution - don't resize to 224x224
+            samples.append(sample["image"])
+            if (i + 1) % 20 == 0:
+                print(f"Loaded {i + 1}/{num_samples} samples")
+
+        return samples
+
+    except Exception as e:
+        print(f"Failed to load ImageNet dataset: {e}")
+        print("Creating synthetic ImageNet-sized images as fallback...")
+        # Create synthetic images as fallback with varied ImageNet-like sizes
+        samples = []
+        imagenet_sizes = [(480, 640), (375, 500), (224, 224), (256, 256), (299, 299)]
+        for i in range(num_samples):
+            # Use different sizes to simulate real ImageNet variety
+            h, w = imagenet_sizes[i % len(imagenet_sizes)]
+            np_img = np.random.randint(0, 255, (h, w, 3), dtype=np.uint8)
+            pil_img = Image.fromarray(np_img)
+            samples.append(pil_img)
+
+        return samples
+
+
+def prepare_multi_size_images(
+    cityscapes_samples: List[Image.Image], imagenet_samples: List[Image.Image]
+) -> Dict[Tuple[int, int], Tuple[List[Image.Image], List[np.ndarray]]]:
+    """Prepare images at multiple sizes for benchmarking.
+
+    Args:
+        cityscapes_samples: Large resolution images from Cityscapes
+        imagenet_samples: Various resolution images from ImageNet
+
+    Returns:
+        Dictionary mapping (width, height) -> (pil_images, cv_images)
+    """
+    sizes_and_images = {}
+
+    # Define target sizes: Cityscapes for large, ImageNet for small
+    target_sizes = [
+        (2048, 1024),  # Large - from Cityscapes
+        (1024, 512),  # Large - from Cityscapes
+        (512, 256),  # Large - from Cityscapes
+        (256, 256),  # Small - from ImageNet
+        (224, 224),  # Small - from ImageNet
+    ]
+
+    for width, height in target_sizes:
+        print(f"Preparing images at size {width}x{height}...")
+
+        # Choose source dataset based on target size
+        source_samples = cityscapes_samples if width >= 512 else imagenet_samples
+
+        # Resize all source images to target size
+        pil_images = []
+        for img in source_samples:
+            resized_img = img.resize((width, height), Image.LANCZOS)
+            pil_images.append(resized_img)
+
+        # Convert to OpenCV format
+        cv_images = [np.array(img) for img in pil_images]
+
+        sizes_and_images[(width, height)] = (pil_images, cv_images)
+
+    return sizes_and_images
+
+
+def prepare_images(
+    samples: List[Image.Image],
+) -> Tuple[List[Image.Image], List[np.ndarray]]:
+    """Convert samples to both PIL and numpy format. (Legacy function)"""
+    pil_images = samples
+    cv_images = [np.array(img) for img in samples]
     return pil_images, cv_images
 
 
@@ -160,183 +256,58 @@ def plot_results(results: List[Dict], save_path: Optional[str] = None):
     plt.show()
 
 
-def get_all_transform_configs():
-    """Get configuration for all transforms to benchmark."""
+def get_transform_configs():
+    """Get configuration for transforms to benchmark."""
     # Set random seed for reproducibility
     random.seed(42)
     np.random.seed(42)
     torch.manual_seed(42)
 
-    transform_configs = []
-
-    # Task 4: Basic transforms
-    # Compose
-    resize_256 = {
-        "pil": pil_transforms.Resize((256, 256)),
-        "cv": cv_transforms.Resize((256, 256)),
-    }
-    center_crop_224 = {
-        "pil": pil_transforms.CenterCrop(224),
-        "cv": cv_transforms.CenterCrop(224),
-    }
-    transform_configs.append(
+    return [
+        # Basic transforms
         {
-            "name": "Compose (Resize+CenterCrop)",
-            "pil": pil_transforms.Compose([resize_256["pil"], center_crop_224["pil"]]),
-            "cv": cv_transforms.Compose([resize_256["cv"], center_crop_224["cv"]]),
-        }
-    )
-
-    # ToTensor
-    transform_configs.append(
-        {
-            "name": "ToTensor",
-            "pil": pil_transforms.ToTensor(),
-            "cv": cv_transforms.ToTensor(),
-        }
-    )
-
-    # Normalize (needs tensor input, so compose with ToTensor)
-    transform_configs.append(
-        {
-            "name": "Normalize (with ToTensor)",
-            "pil": pil_transforms.Compose(
-                [
-                    pil_transforms.ToTensor(),
-                    pil_transforms.Normalize(
-                        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                    ),
-                ]
-            ),
-            "cv": cv_transforms.Compose(
-                [
-                    cv_transforms.ToTensor(),
-                    cv_transforms.Normalize(
-                        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                    ),
-                ]
-            ),
-        }
-    )
-
-    # Task 5: Resizing transforms
-    transform_configs.append(
-        {
-            "name": "Resize (256x256)",
-            "pil": pil_transforms.Resize((256, 256)),
-            "cv": cv_transforms.Resize((256, 256)),
-        }
-    )
-
-    # Scale is deprecated and removed in newer torchvision
-    # Using Resize instead for testing the OpenCV Scale transform
-    transform_configs.append(
-        {
-            "name": "Scale (deprecated, 256)",
-            "pil": pil_transforms.Resize(256),  # Use Resize as Scale is removed
-            "cv": cv_transforms.Scale(256),  # Test our Scale implementation
-        }
-    )
-
-    transform_configs.append(
-        {
-            "name": "RandomResizedCrop (224x224)",
-            "pil": pil_transforms.RandomResizedCrop(224),
-            "cv": cv_transforms.RandomResizedCrop(224),
-        }
-    )
-
-    # RandomSizedCrop is deprecated and removed in newer torchvision
-    # Using RandomResizedCrop instead for testing the OpenCV RandomSizedCrop transform
-    transform_configs.append(
-        {
-            "name": "RandomSizedCrop (deprecated, 224)",
-            "pil": pil_transforms.RandomResizedCrop(
-                224
-            ),  # Use RandomResizedCrop as RandomSizedCrop is removed
-            "cv": cv_transforms.RandomSizedCrop(
-                224
-            ),  # Test our RandomSizedCrop implementation
-        }
-    )
-
-    # Task 6: Cropping transforms
-    transform_configs.append(
+            "name": "Resize (224x224)",
+            "pil": pil_transforms.Resize((224, 224)),
+            "cv": cv_transforms.Resize((224, 224)),
+        },
         {
             "name": "CenterCrop (224x224)",
             "pil": pil_transforms.CenterCrop(224),
             "cv": cv_transforms.CenterCrop(224),
-        }
-    )
-
-    transform_configs.append(
+        },
         {
             "name": "RandomCrop (224x224)",
             "pil": pil_transforms.RandomCrop(224),
             "cv": cv_transforms.RandomCrop(224),
-        }
-    )
-
-    transform_configs.append(
+        },
         {
-            "name": "FiveCrop (224x224)",
-            "pil": pil_transforms.FiveCrop(224),
-            "cv": cv_transforms.FiveCrop(224),
-        }
-    )
-
-    transform_configs.append(
-        {
-            "name": "TenCrop (224x224)",
-            "pil": pil_transforms.TenCrop(224),
-            "cv": cv_transforms.TenCrop(224),
-        }
-    )
-
-    # Task 7: Flipping transforms
-    transform_configs.append(
+            "name": "RandomResizedCrop (224x224)",
+            "pil": pil_transforms.RandomResizedCrop(224),
+            "cv": cv_transforms.RandomResizedCrop(224),
+        },
+        # Flipping transforms
         {
             "name": "RandomHorizontalFlip (p=1.0)",
             "pil": pil_transforms.RandomHorizontalFlip(p=1.0),
             "cv": cv_transforms.RandomHorizontalFlip(p=1.0),
-        }
-    )
-
-    transform_configs.append(
+        },
         {
             "name": "RandomVerticalFlip (p=1.0)",
             "pil": pil_transforms.RandomVerticalFlip(p=1.0),
             "cv": cv_transforms.RandomVerticalFlip(p=1.0),
-        }
-    )
-
-    # Task 8: Padding transform
-    transform_configs.append(
+        },
+        # Padding transform
         {
             "name": "Pad (padding=10)",
             "pil": pil_transforms.Pad(10, fill=0),
             "cv": cv_transforms.Pad(10, fill=0),
-        }
-    )
-
-    transform_configs.append(
-        {
-            "name": "Pad (padding=(10,20,30,40))",
-            "pil": pil_transforms.Pad((10, 20, 30, 40), fill=128),
-            "cv": cv_transforms.Pad((10, 20, 30, 40), fill=128),
-        }
-    )
-
-    # Task 9: Color transforms
-    transform_configs.append(
+        },
+        # Color transforms
         {
             "name": "ColorJitter (brightness=0.2)",
             "pil": pil_transforms.ColorJitter(brightness=0.2),
             "cv": cv_transforms.ColorJitter(brightness=0.2),
-        }
-    )
-
-    transform_configs.append(
+        },
         {
             "name": "ColorJitter (all params)",
             "pil": pil_transforms.ColorJitter(
@@ -345,157 +316,82 @@ def get_all_transform_configs():
             "cv": cv_transforms.ColorJitter(
                 brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1
             ),
-        }
-    )
-
-    transform_configs.append(
+        },
         {
             "name": "Grayscale (3 channels)",
             "pil": pil_transforms.Grayscale(num_output_channels=3),
             "cv": cv_transforms.Grayscale(num_output_channels=3),
-        }
-    )
-
-    transform_configs.append(
-        {
-            "name": "Grayscale (1 channel)",
-            "pil": pil_transforms.Grayscale(num_output_channels=1),
-            "cv": cv_transforms.Grayscale(num_output_channels=1),
-        }
-    )
-
-    transform_configs.append(
+        },
         {
             "name": "RandomGrayscale (p=1.0)",
             "pil": pil_transforms.RandomGrayscale(p=1.0),
             "cv": cv_transforms.RandomGrayscale(p=1.0),
-        }
-    )
-
-    # Task 10: Geometric transforms
-    transform_configs.append(
+        },
+        # Geometric transforms
         {
-            "name": "RandomRotation (10°)",
-            "pil": pil_transforms.RandomRotation(10),
-            "cv": cv_transforms.RandomRotation(10),
-        }
-    )
-
-    transform_configs.append(
+            "name": "RandomRotation (15°)",
+            "pil": pil_transforms.RandomRotation(15),
+            "cv": cv_transforms.RandomRotation(15),
+        },
         {
-            "name": "RandomRotation ((-30, 30))",
-            "pil": pil_transforms.RandomRotation((-30, 30)),
-            "cv": cv_transforms.RandomRotation((-30, 30)),
-        }
-    )
-
-    transform_configs.append(
+            "name": "RandomAffine (degrees=15)",
+            "pil": pil_transforms.RandomAffine(degrees=15),
+            "cv": cv_transforms.RandomAffine(degrees=15),
+        },
+        # Tensor operations
         {
-            "name": "RandomAffine (degrees=10)",
-            "pil": pil_transforms.RandomAffine(degrees=10),
-            "cv": cv_transforms.RandomAffine(degrees=10),
-        }
-    )
-
-    transform_configs.append(
+            "name": "ToTensor",
+            "pil": pil_transforms.ToTensor(),
+            "cv": cv_transforms.ToTensor(),
+        },
+        # Multi-crop transforms
         {
-            "name": "RandomAffine (full params)",
-            "pil": pil_transforms.RandomAffine(
-                degrees=15, translate=(0.1, 0.1), scale=(0.9, 1.1)
+            "name": "FiveCrop (224x224)",
+            "pil": pil_transforms.FiveCrop(224),
+            "cv": cv_transforms.FiveCrop(224),
+        },
+        {
+            "name": "TenCrop (224x224)",
+            "pil": pil_transforms.TenCrop(224),
+            "cv": cv_transforms.TenCrop(224),
+        },
+        # Composite transforms
+        {
+            "name": "Standard ImageNet Pipeline",
+            "pil": pil_transforms.Compose(
+                [
+                    pil_transforms.Resize(256),
+                    pil_transforms.CenterCrop(224),
+                    pil_transforms.ToTensor(),
+                    pil_transforms.Normalize(
+                        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                    ),
+                ]
             ),
-            "cv": cv_transforms.RandomAffine(
-                degrees=15, translate=(0.1, 0.1), scale=(0.9, 1.1)
+            "cv": cv_transforms.Compose(
+                [
+                    cv_transforms.Resize(256),
+                    cv_transforms.CenterCrop(224),
+                    cv_transforms.ToTensor(),
+                    cv_transforms.Normalize(
+                        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                    ),
+                ]
             ),
-        }
-    )
-
-    # LinearTransformation is very slow for large matrices, skip for now
-    # It would need a much smaller matrix (e.g., 3x3) for reasonable performance
-
-    # Task 11: Random containers
-    # RandomApply
-    color_jitter = {
-        "pil": pil_transforms.ColorJitter(brightness=0.5),
-        "cv": cv_transforms.ColorJitter(brightness=0.5),
-    }
-    transform_configs.append(
-        {
-            "name": "RandomApply (ColorJitter, p=1.0)",
-            "pil": pil_transforms.RandomApply([color_jitter["pil"]], p=1.0),
-            "cv": cv_transforms.RandomApply([color_jitter["cv"]], p=1.0),
-        }
-    )
-
-    # RandomChoice
-    transforms_list_pil = [
-        pil_transforms.RandomHorizontalFlip(p=1.0),
-        pil_transforms.RandomVerticalFlip(p=1.0),
+        },
     ]
-    transforms_list_cv = [
-        cv_transforms.RandomHorizontalFlip(p=1.0),
-        cv_transforms.RandomVerticalFlip(p=1.0),
-    ]
-    transform_configs.append(
-        {
-            "name": "RandomChoice (HFlip or VFlip)",
-            "pil": pil_transforms.RandomChoice(transforms_list_pil),
-            "cv": cv_transforms.RandomChoice(transforms_list_cv),
-        }
-    )
-
-    # RandomOrder
-    transform_configs.append(
-        {
-            "name": "RandomOrder (HFlip, VFlip)",
-            "pil": pil_transforms.RandomOrder(transforms_list_pil),
-            "cv": cv_transforms.RandomOrder(transforms_list_cv),
-        }
-    )
-
-    # Task 12: Utility transform (Lambda)
-    def simple_brightness(img):
-        """Simple lambda function to adjust brightness."""
-        if isinstance(img, np.ndarray):
-            return np.clip(img * 1.2, 0, 255).astype(img.dtype)
-        else:  # PIL Image
-            if isinstance(img, PIL.Image.Image):
-                enhancer = PIL.ImageEnhance.Brightness(img)
-                return enhancer.enhance(1.2)
-            return img
-
-    transform_configs.append(
-        {
-            "name": "Lambda (brightness * 1.2)",
-            "pil": pil_transforms.Lambda(simple_brightness),
-            "cv": cv_transforms.Lambda(simple_brightness),
-        }
-    )
-
-    return transform_configs
 
 
 def main():
-    # Load test samples or create synthetic ones
-    try:
-        samples = load_test_samples(num_samples=50)
-        pil_images, cv_images = prepare_images(samples)
-    except Exception as e:
-        print(f"Failed to load dataset: {e}")
-        print("Creating synthetic test images instead...")
-        # Create synthetic images for testing
-        pil_images = [
-            Image.fromarray(np.random.randint(0, 255, (500, 375, 3), dtype=np.uint8))
-            for _ in range(50)
-        ]
-        cv_images = [np.array(img) for img in pil_images]
+    """Main benchmarking function."""
+    # Load ImageNet validation images
+    samples = load_imagenet_validation(num_samples=100)
+    pil_images, cv_images = prepare_images(samples)
+    print(f"Using {len(pil_images)} images for benchmarking")
 
-    print(f"Using {len(pil_images)} test images")
-
-    # Get all transform configurations
-    transform_configs = get_all_transform_configs()
-
-    print(f"\nTotal transforms to benchmark: {len(transform_configs)}")
-    # Test all transforms now
+    # Get transform configurations
+    transform_configs = get_transform_configs()
+    print(f"Benchmarking {len(transform_configs)} transforms")
 
     # Run benchmarks
     results = []
@@ -506,26 +402,29 @@ def main():
         results.append(result)
 
     # Print summary
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 70)
     print("BENCHMARK SUMMARY")
-    print("=" * 60)
-    print(f"{'Transform':<30} {'PIL (ms)':<12} {'OpenCV (ms)':<12} {'Speedup':<10}")
-    print("-" * 60)
+    print("=" * 70)
+    print(f"{'Transform':<35} {'PIL (ms)':<12} {'OpenCV (ms)':<12} {'Speedup':<10}")
+    print("-" * 70)
 
     for result in results:
         print(
-            f"{result['transform']:<30} "
+            f"{result['transform']:<35} "
             f"{result['pil_avg_time'] * 1000:<12.3f} "
             f"{result['cv_avg_time'] * 1000:<12.3f} "
             f"{result['speedup']:<10.2f}x"
         )
 
-    avg_speedup = np.mean([r["speedup"] for r in results])
-    print("-" * 60)
-    print(f"{'Average Speedup:':<30} {'':<12} {'':<12} {avg_speedup:<10.2f}x")
+    # Calculate and display average speedup
+    valid_speedups = [r["speedup"] for r in results if r["speedup"] > 0]
+    if valid_speedups:
+        avg_speedup = np.mean(valid_speedups)
+        print("-" * 70)
+        print(f"{'Average Speedup:':<35} {'':<12} {'':<12} {avg_speedup:<10.2f}x")
 
-    # Plot results
-    plot_results(results, save_path="imagenet_benchmark_results.png")
+    # Generate and save results plot
+    plot_results(results, save_path="benchmark_results.png")
 
 
 if __name__ == "__main__":
