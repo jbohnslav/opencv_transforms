@@ -8,6 +8,9 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+import matplotlib
+
+matplotlib.use("Agg")  # Use headless backend
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -216,50 +219,195 @@ def run_benchmark(
     }
 
 
-def plot_results(results: List[Dict], save_path: Optional[str] = None):
-    """Plot benchmark results."""
-    transforms = [r["transform"] for r in results]
-    pil_times = [r["pil_avg_time"] * 1000 for r in results]  # Convert to ms
-    cv_times = [r["cv_avg_time"] * 1000 for r in results]
-    speedups = [r["speedup"] for r in results]
+def plot_multi_size_results(results: List[Dict], save_path: Optional[str] = None):
+    """Create multi-panel plots showing performance across image sizes."""
+    # Organize results by transform
+    transform_names = sorted({r["transform"] for r in results})
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+    # Calculate grid layout (try to make it roughly square)
+    n_transforms = len(transform_names)
+    cols = min(4, n_transforms)  # Max 4 columns
+    rows = (n_transforms + cols - 1) // cols
 
-    # Plot timing comparison
-    x = np.arange(len(transforms))
-    width = 0.35
+    print(f"Creating {rows}x{cols} grid for {n_transforms} transforms")
 
-    ax1.bar(x - width / 2, pil_times, width, label="PIL", color="blue", alpha=0.7)
-    ax1.bar(x + width / 2, cv_times, width, label="OpenCV", color="green", alpha=0.7)
-    ax1.set_xlabel("Transform")
-    ax1.set_ylabel("Average Time (ms)")
-    ax1.set_title("Transform Execution Time Comparison")
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(transforms, rotation=45, ha="right")
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
+    # Create subplots
+    fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 4 * rows))
+    if rows == 1 and cols == 1:
+        axes = [axes]
+    elif rows == 1 or cols == 1:
+        axes = axes.flatten()
+    else:
+        axes = axes.flatten()
 
-    # Plot speedup
-    ax2.bar(x, speedups, color="orange", alpha=0.7)
-    ax2.set_xlabel("Transform")
-    ax2.set_ylabel("Speedup Factor")
-    ax2.set_title("OpenCV Speedup over PIL")
-    ax2.set_xticks(x)
-    ax2.set_xticklabels(transforms, rotation=45, ha="right")
-    ax2.axhline(y=1, color="r", linestyle="--", alpha=0.5, label="No speedup")
-    ax2.grid(True, alpha=0.3)
+    # Plot each transform
+    for i, transform_name in enumerate(transform_names):
+        ax = axes[i]
 
-    # Add speedup values on bars
-    for i, v in enumerate(speedups):
-        ax2.text(i, v + 0.1, f"{v:.2f}x", ha="center", va="bottom")
+        # Get results for this transform across all sizes
+        transform_results = [r for r in results if r["transform"] == transform_name]
+        transform_results.sort(key=lambda x: x["pixel_count"])  # Sort by image size
+
+        if not transform_results:
+            ax.set_title(f"{transform_name}\n(No data)")
+            continue
+
+        # Extract timing data
+        pil_times = [
+            r["pil_avg_time"] * 1000 for r in transform_results
+        ]  # Convert to ms
+        cv_times = [r["cv_avg_time"] * 1000 for r in transform_results]
+        x_positions = range(len(transform_results))
+
+        # Plot lines for PIL and OpenCV
+        ax.plot(
+            x_positions,
+            pil_times,
+            "o-",
+            color="blue",
+            label="PIL",
+            linewidth=2,
+            markersize=6,
+        )
+        ax.plot(
+            x_positions,
+            cv_times,
+            "o-",
+            color="red",
+            label="OpenCV",
+            linewidth=2,
+            markersize=6,
+        )
+
+        # Formatting
+        ax.set_title(f"{transform_name}", fontsize=10, pad=10)
+        ax.set_xlabel("Image Size", fontsize=9)
+        ax.set_ylabel("Time (ms)", fontsize=9)
+        ax.set_yscale("log")  # Log scale for better visualization of different ranges
+        ax.grid(True, alpha=0.3)
+
+        # Set x-axis labels
+        size_labels_this_transform = [
+            f"{r['width']}x{r['height']}" for r in transform_results
+        ]
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(size_labels_this_transform, rotation=45, fontsize=8)
+
+        # Add legend only to first subplot
+        if i == 0:
+            ax.legend(fontsize=9)
+
+        # Add speedup annotations
+        for j, result in enumerate(transform_results):
+            speedup = result["speedup"]
+            y_pos = max(pil_times[j], cv_times[j])
+            ax.annotate(
+                f"{speedup:.1f}x",
+                xy=(j, y_pos),
+                xytext=(j, y_pos * 1.5),
+                ha="center",
+                va="bottom",
+                fontsize=7,
+                bbox={"boxstyle": "round,pad=0.2", "facecolor": "yellow", "alpha": 0.7},
+            )
+
+    # Hide unused subplots
+    for i in range(n_transforms, len(axes)):
+        axes[i].set_visible(False)
+
+    # Add overall title
+    fig.suptitle(
+        "Transform Performance Across Image Sizes\n(PIL vs OpenCV)", fontsize=14, y=0.98
+    )
+
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.93)  # Make room for suptitle
+
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        print(f"Saved multi-panel plot to {save_path}")
+    else:
+        plt.savefig("multi_size_benchmark_results.png", dpi=300, bbox_inches="tight")
+        print("Saved multi-panel plot to multi_size_benchmark_results.png")
+
+    plt.close()  # Close figure to free memory
+
+
+def plot_speedup_summary(results: List[Dict], save_path: Optional[str] = None):
+    """Create a summary plot showing speedup factors across sizes."""
+    # Get unique transforms and sizes
+    transform_names = sorted({r["transform"] for r in results})
+    sizes = sorted({r["image_size"] for r in results}, key=lambda x: x[0] * x[1])
+
+    # Create speedup matrix
+    speedup_matrix = np.zeros((len(transform_names), len(sizes)))
+
+    for i, transform in enumerate(transform_names):
+        for j, size in enumerate(sizes):
+            matching_results = [
+                r
+                for r in results
+                if r["transform"] == transform and r["image_size"] == size
+            ]
+            if matching_results:
+                speedup_matrix[i, j] = matching_results[0]["speedup"]
+
+    # Create heatmap
+    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+
+    im = ax.imshow(speedup_matrix, cmap="RdYlGn", aspect="auto", vmin=0, vmax=10)
+
+    # Set ticks and labels
+    ax.set_xticks(range(len(sizes)))
+    ax.set_yticks(range(len(transform_names)))
+    ax.set_xticklabels([f"{w}x{h}" for w, h in sizes], rotation=45)
+    ax.set_yticklabels(transform_names)
+
+    # Add text annotations
+    for i in range(len(transform_names)):
+        for j in range(len(sizes)):
+            ax.text(
+                j,
+                i,
+                f"{speedup_matrix[i, j]:.1f}x",
+                ha="center",
+                va="center",
+                color="black",
+                fontsize=8,
+            )
+
+    ax.set_title(
+        "OpenCV Speedup Factor Heatmap\n(Speedup = PIL_time / OpenCV_time)", pad=20
+    )
+    ax.set_xlabel("Image Size")
+    ax.set_ylabel("Transform")
+
+    # Add colorbar
+    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("Speedup Factor", rotation=270, labelpad=15)
 
     plt.tight_layout()
 
     if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        print(f"Saved plot to {save_path}")
+        heatmap_path = save_path.replace(".png", "_heatmap.png")
+        plt.savefig(heatmap_path, dpi=300, bbox_inches="tight")
+        print(f"Saved speedup heatmap to {heatmap_path}")
+    else:
+        plt.savefig("speedup_heatmap.png", dpi=300, bbox_inches="tight")
+        print("Saved speedup heatmap to speedup_heatmap.png")
 
-    plt.show()
+    plt.close()  # Close figure to free memory
+
+
+def plot_results(results: List[Dict], save_path: Optional[str] = None):
+    """Plot comprehensive multi-size benchmark results."""
+    print("\nGenerating multi-panel visualization...")
+
+    # Create the main multi-panel plot
+    plot_multi_size_results(results, save_path)
+
+    # Create the speedup heatmap
+    plot_speedup_summary(results, save_path)
 
 
 def get_transform_configs():
