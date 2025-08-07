@@ -1,6 +1,9 @@
 """Benchmark script for comparing PIL and OpenCV transform performance."""
 
+import datetime
+import platform
 import random
+import sys
 import time
 from typing import Callable
 from typing import Dict
@@ -13,6 +16,7 @@ import matplotlib
 matplotlib.use("Agg")  # Use headless backend
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
 from datasets import load_dataset
 from PIL import Image
@@ -410,6 +414,78 @@ def plot_results(results: List[Dict], save_path: Optional[str] = None):
     plot_speedup_summary(results, save_path)
 
 
+def export_results_to_csv(results: List[Dict], csv_path: Optional[str] = None):
+    """Export comprehensive benchmark results to CSV file."""
+    if not results:
+        print("No results to export")
+        return
+
+    # Generate system information
+    system_info = {
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        "platform": platform.system(),
+        "platform_version": platform.version(),
+        "processor": platform.processor(),
+        "architecture": platform.architecture()[0],
+    }
+
+    system_info_str = f"Python {system_info['python_version']} on {system_info['platform']} {system_info['architecture']}"
+
+    # Current timestamp
+    timestamp = datetime.datetime.now().isoformat()
+
+    # Prepare data for DataFrame
+    csv_data = []
+    for result in results:
+        row = {
+            # Transform identification
+            "transform": result["transform"],
+            "image_size": f"{result['width']}x{result['height']}",
+            "width": result["width"],
+            "height": result["height"],
+            "pixel_count": result["pixel_count"],
+            # PIL timing statistics (convert to milliseconds)
+            "pil_avg_time_ms": result["pil_avg_time"] * 1000,
+            "pil_std_time_ms": result["pil_std_time"] * 1000,
+            "pil_min_time_ms": result["pil_min_time"] * 1000,
+            "pil_max_time_ms": result["pil_max_time"] * 1000,
+            # OpenCV timing statistics (convert to milliseconds)
+            "cv_avg_time_ms": result["cv_avg_time"] * 1000,
+            "cv_std_time_ms": result["cv_std_time"] * 1000,
+            "cv_min_time_ms": result["cv_min_time"] * 1000,
+            "cv_max_time_ms": result["cv_max_time"] * 1000,
+            # Performance comparison
+            "speedup": result["speedup"],
+            # Metadata
+            "timestamp": timestamp,
+            "system_info": system_info_str,
+        }
+        csv_data.append(row)
+
+    # Create DataFrame
+    df = pd.DataFrame(csv_data)
+
+    # Determine output path
+    if csv_path is None:
+        csv_path = (
+            f"benchmark_results_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        )
+
+    # Save to CSV
+    df.to_csv(csv_path, index=False, float_format="%.6f")
+    print(f"\nExported {len(csv_data)} benchmark results to {csv_path}")
+
+    # Print summary statistics
+    print("Summary:")
+    print(f"  - Total benchmarks: {len(csv_data)}")
+    print(f"  - Transforms tested: {len(df['transform'].unique())}")
+    print(f"  - Image sizes tested: {len(df['image_size'].unique())}")
+    print(f"  - Average speedup: {df['speedup'].mean():.2f}x")
+    print(
+        f"  - Best speedup: {df['speedup'].max():.2f}x ({df.loc[df['speedup'].idxmax(), 'transform']})"
+    )
+
+
 def get_transform_configs():
     """Get configuration for transforms to benchmark."""
     # Set random seed for reproducibility
@@ -617,8 +693,11 @@ def main():
         print(f"Total benchmark runs: {len(results)}")
         print(f"Overall average speedup: {overall_avg_speedup:.2f}x")
 
-    # Generate and save results plot (will be updated for multi-size)
+    # Generate and save results plot
     plot_results(results, save_path="multi_size_benchmark_results.png")
+
+    # Export results to CSV
+    export_results_to_csv(results, csv_path="multi_size_benchmark_results.csv")
 
 
 if __name__ == "__main__":
