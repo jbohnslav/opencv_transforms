@@ -179,9 +179,11 @@ def run_benchmark(
     cv_transform: Callable,
     pil_images: List,
     cv_images: List,
+    image_size: Tuple[int, int],
 ) -> Dict:
-    """Run benchmark comparing PIL and OpenCV transforms."""
-    print(f"\nBenchmarking {transform_name}...")
+    """Run benchmark comparing PIL and OpenCV transforms at a specific image size."""
+    width, height = image_size
+    print(f"\nBenchmarking {transform_name} at {width}x{height}...")
 
     # Benchmark PIL transform
     pil_avg, pil_std, pil_min, pil_max = benchmark_transform(pil_transform, pil_images)
@@ -198,6 +200,10 @@ def run_benchmark(
 
     return {
         "transform": transform_name,
+        "image_size": image_size,
+        "width": width,
+        "height": height,
+        "pixel_count": width * height,
         "pil_avg_time": pil_avg,
         "pil_std_time": pil_std,
         "pil_min_time": pil_min,
@@ -384,47 +390,87 @@ def get_transform_configs():
 
 def main():
     """Main benchmarking function."""
-    # Load ImageNet validation images
-    samples = load_imagenet_validation(num_samples=100)
-    pil_images, cv_images = prepare_images(samples)
-    print(f"Using {len(pil_images)} images for benchmarking")
+    # Load datasets
+    print("Loading datasets...")
+    cityscapes_samples = load_cityscapes_dataset(num_samples=100)
+    imagenet_samples = load_imagenet_validation(num_samples=100)
+
+    # Prepare multi-size images
+    print("\nPreparing images at multiple sizes...")
+    size_dict = prepare_multi_size_images(cityscapes_samples, imagenet_samples)
+    sizes = sorted(
+        size_dict.keys(), key=lambda x: x[0] * x[1], reverse=True
+    )  # Sort by pixel count
+    print(f"Using {len(sizes)} image sizes: {[f'{w}x{h}' for w, h in sizes]}")
 
     # Get transform configurations
     transform_configs = get_transform_configs()
-    print(f"Benchmarking {len(transform_configs)} transforms")
+    print(f"Benchmarking {len(transform_configs)} transforms across {len(sizes)} sizes")
+    print(f"Total benchmark runs: {len(transform_configs) * len(sizes)}")
 
-    # Run benchmarks
+    # Run benchmarks for all transforms and sizes
     results = []
-    for config in transform_configs:
-        result = run_benchmark(
-            config["name"], config["pil"], config["cv"], pil_images, cv_images
-        )
-        results.append(result)
+    total_runs = len(transform_configs) * len(sizes)
+    current_run = 0
 
-    # Print summary
-    print("\n" + "=" * 70)
-    print("BENCHMARK SUMMARY")
-    print("=" * 70)
-    print(f"{'Transform':<35} {'PIL (ms)':<12} {'OpenCV (ms)':<12} {'Speedup':<10}")
-    print("-" * 70)
+    for size in sizes:
+        width, height = size
+        pil_images, cv_images = size_dict[size]
+        print(f"\n{'=' * 60}")
+        print(f"BENCHMARKING AT SIZE: {width}x{height} ({width * height:,} pixels)")
+        print(f"{'=' * 60}")
 
-    for result in results:
-        print(
-            f"{result['transform']:<35} "
-            f"{result['pil_avg_time'] * 1000:<12.3f} "
-            f"{result['cv_avg_time'] * 1000:<12.3f} "
-            f"{result['speedup']:<10.2f}x"
-        )
+        for config in transform_configs:
+            current_run += 1
+            print(f"[{current_run}/{total_runs}] ", end="")
 
-    # Calculate and display average speedup
+            result = run_benchmark(
+                config["name"], config["pil"], config["cv"], pil_images, cv_images, size
+            )
+            results.append(result)
+
+    # Print detailed summary by size
+    print("\n" + "=" * 90)
+    print("DETAILED BENCHMARK SUMMARY")
+    print("=" * 90)
+
+    for size in sizes:
+        width, height = size
+        print(f"\nImage Size: {width}x{height} ({width * height:,} pixels)")
+        print("-" * 70)
+        print(f"{'Transform':<35} {'PIL (ms)':<12} {'OpenCV (ms)':<12} {'Speedup':<10}")
+        print("-" * 70)
+
+        size_results = [r for r in results if r["image_size"] == size]
+        for result in size_results:
+            print(
+                f"{result['transform']:<35} "
+                f"{result['pil_avg_time'] * 1000:<12.3f} "
+                f"{result['cv_avg_time'] * 1000:<12.3f} "
+                f"{result['speedup']:<10.2f}x"
+            )
+
+        # Size-specific average speedup
+        valid_speedups = [r["speedup"] for r in size_results if r["speedup"] > 0]
+        if valid_speedups:
+            avg_speedup = np.mean(valid_speedups)
+            print("-" * 70)
+            print(
+                f"{'Size Average Speedup:':<35} {'':<12} {'':<12} {avg_speedup:<10.2f}x"
+            )
+
+    # Overall summary
+    print("\n" + "=" * 90)
+    print("OVERALL SUMMARY")
+    print("=" * 90)
     valid_speedups = [r["speedup"] for r in results if r["speedup"] > 0]
     if valid_speedups:
-        avg_speedup = np.mean(valid_speedups)
-        print("-" * 70)
-        print(f"{'Average Speedup:':<35} {'':<12} {'':<12} {avg_speedup:<10.2f}x")
+        overall_avg_speedup = np.mean(valid_speedups)
+        print(f"Total benchmark runs: {len(results)}")
+        print(f"Overall average speedup: {overall_avg_speedup:.2f}x")
 
-    # Generate and save results plot
-    plot_results(results, save_path="benchmark_results.png")
+    # Generate and save results plot (will be updated for multi-size)
+    plot_results(results, save_path="multi_size_benchmark_results.png")
 
 
 if __name__ == "__main__":
