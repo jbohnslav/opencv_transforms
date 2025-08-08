@@ -24,3 +24,7 @@ coverage.xml
 *.png
 tests/.cache/
 debug/*.png
+
+# Exception: Keep benchmark result files
+!*benchmark_results*.png
+!*benchmark_results*.csv
